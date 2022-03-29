@@ -37,8 +37,8 @@ private:
     bool is_initialized;
     void find_index(void);
     PID_Cntrl v_cntrl[2];
+    float Kv[2];
     float pos_cntrl(float);
-    float Kv;
     Data_Xchange *m_data;
     sensors_actuators *m_sa;
     Mirror_Kinematic *m_mk;

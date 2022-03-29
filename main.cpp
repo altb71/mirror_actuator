@@ -20,7 +20,9 @@ void reset_data(Data_Xchange *);
 
 //----------------------------------------- global variables (uhh!) ---------------------------
 //init values:    (f0,   f1, nbPts, A0, A1, Ts)
-GPA          myGPA(5 , 1000,    30,.25,.25, Ts);
+GPA          myGPA(5 , 1000,    30,.35,.5, Ts); // % para for vel-cntrl
+//GPA          myGPA( 1,  120,    30,100,10, Ts);
+
 
 DataLogger myDataLogger(1);
 

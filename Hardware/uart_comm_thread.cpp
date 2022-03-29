@@ -32,7 +32,6 @@ extern GPA myGPA;
 				2 		Phi2 / rad
 				3		x / mm
 				4		y / mm
-
 --------------------------------------------------
 121-140 send techn. values, like offsets
 		id1		id2	
@@ -44,7 +43,6 @@ extern GPA myGPA;
 		125
 				1		num_it of X2P trafo
 --------------------------------------------------
-
 2xx: set-value and commands (like disable controller...)
 		id1		id2	
 		
@@ -75,7 +73,6 @@ extern GPA myGPA;
 				1 Send text
 		250 
 				1 GPA message
-
 */
 
 
@@ -123,7 +120,7 @@ void uart_comm_thread::run(void)
 				break;	
 			case 1012:
 				send(101,34,2*4,(char *)&(m_data->est_xy[0]));		// send actual xy values 
-				send_state = 250;
+				send_state = 210;
 				break;	
 			case 125:		// number of iterations in the trafo
 				send(125,1,1,(char *)&m_data->num_it);		
@@ -132,16 +129,16 @@ void uart_comm_thread::run(void)
 			case 210:		// number of iterations in the trafo
 				if(myDataLogger.new_data_available)
                     {
-                        if(myDataLogger.packet*200<4*3*myDataLogger.N)
-                            send(210,1+myDataLogger.packet,200,(char *)&(myDataLogger.log_data[myDataLogger.packet*200]));
+                        if(myDataLogger.packet*PACK_SIZE<4*myDataLogger.N_col*myDataLogger.N_row)
+                            send(210,1+myDataLogger.packet,PACK_SIZE,(char *)&(myDataLogger.log_data[myDataLogger.packet*(PACK_SIZE/4)]));
                         else
                             {
-                            send(210,1+myDataLogger.packet,4*3*myDataLogger.N-myDataLogger.packet*200,(char *)&(myDataLogger.log_data[myDataLogger.packet*200]));
+                            send(210,1+myDataLogger.packet,4*myDataLogger.N_col*myDataLogger.N_row-myDataLogger.packet*PACK_SIZE,(char *)&(myDataLogger.log_data[myDataLogger.packet*PACK_SIZE/4]));
                             myDataLogger.log_status = 1;
                             myDataLogger.new_data_available = false;
                             send_state = 211;
                             }
-                        myDataLogger.packet++;
+                        ++myDataLogger.packet;
                     }
                 else
                     send_state = 250;
@@ -293,11 +290,15 @@ bool uart_comm_thread::analyse_received_data(void){
         case 210:
             switch(msg_id2)
                 {
-                case 101:
+                case 101:           // receive start signal and Amp, Freq, offset values
                     if(myDataLogger.log_status == 1)
                         {
                         myDataLogger.reset_data();
                         myDataLogger.input_type = (uint8_t)buffer[7];
+                        myDataLogger.Amp = *(float *)&buffer[8];
+                        myDataLogger.omega = *(float *)&buffer[12];
+                        myDataLogger.offset = *(float *)&buffer[16];
+                        myDataLogger.downsamp = (uint8_t)buffer[20];
                         send_text((char *)"Started time measure");
                         myDataLogger.log_status = 2;
                         }

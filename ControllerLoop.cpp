@@ -11,6 +11,10 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
+    v_cntrl[0].setup(0.017,3.48,0,1,Ts,-0.8,0.8);
+    v_cntrl[1].setup(0.014,2.76,0,1,Ts,-0.8,0.8);
+    Kv[0] = 130;
+    Kv[1] = 130;
     ti.reset();
     ti.start();
     }
@@ -21,7 +25,7 @@ ControllerLoop::~ControllerLoop() {}
 // ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void ControllerLoop::loop(void){
-    float i_des;
+    float i_des, v_des;
     uint8_t k = 0;
     while(1)
         {
@@ -39,17 +43,31 @@ void ControllerLoop::loop(void){
             }
         else
             {
-            // i_des = myGPA.update(...
+            
             // ------------------------ do the control first
             // calculate desired currents here, you can do "anything" here, 
             // if you like to refer to values e.g. from the gui or from the trafo,
             // please use m_data->xxx values, 
             
-            // ------------------------ write outputs
+            // ------------------------ pos contrl
+            float phi_des = myDataLogger.get_set_value(ti.read());
+            float dphi = phi_des - m_data->sens_phi[0];
+            i_des = myGPA.update(i_des,m_data->sens_Vphi[0]);
+            //v_des = Kv[0] * dphi;
+            //v_des = myDataLogger.get_set_value(ti.read());
+            // Motor 1
+            //float error = v_des - m_data->sens_Vphi[0];
+            //i_des = v_cntrl[0](error);
             m_sa->write_current(0,i_des);
-            m_sa->write_current(1,0);       // set 2nd motor to 0A
+            // Motor 2
+            //error = v_des/8 - m_data->sens_Vphi[1];
+            //i_des = v_cntrl[1](error);
+            m_sa->write_current(1,0);
+            // enabling all
             m_sa->enable_motors(true);      // enable motors
             m_sa->set_laser_on_off(m_data->laser_on);
+            //myDataLogger.write_to_log(ti.read(),phi_des,m_data->sens_phi[0],i_des); 
+
             }
         if(++k>=10)
             {
