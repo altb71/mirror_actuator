@@ -12,6 +12,13 @@
 #include "FastPWM.h"
 #include "sensors_actuators.h"
 
+#define IDENT_VEL_PLANT 10
+#define VEL_CNTRL   20
+#define IDENT_POS_PLANT 30
+#define POS_CNTRL   40
+#define CIRCLE   50
+
+
 
 //extern AnalogIn i_act2;
 
@@ -39,6 +46,7 @@ private:
     PID_Cntrl v_cntrl[2];
     float Kv[2];
     float pos_cntrl(float);
+    uint8_t controller_type;
     Data_Xchange *m_data;
     sensors_actuators *m_sa;
     Mirror_Kinematic *m_mk;

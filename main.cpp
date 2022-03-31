@@ -20,8 +20,8 @@ void reset_data(Data_Xchange *);
 
 //----------------------------------------- global variables (uhh!) ---------------------------
 //init values:    (f0,   f1, nbPts, A0, A1, Ts)
-GPA          myGPA(5 , 1000,    30,.35,.5, Ts); // % para for vel-cntrl
-//GPA          myGPA( 1,  120,    30,100,10, Ts);
+//GPA          myGPA(5 , 1000,    30,.35,.5, Ts); // % para for vel-cntrl
+GPA          myGPA( 1,  120,    30,100,10, Ts); // para for position controller
 
 
 DataLogger myDataLogger(1);
@@ -53,7 +53,7 @@ int main()
     loop.start_loop();
     ThisThread::sleep_for(200);
     printf("StartLoop\r\n");
-    uart_com.send_text((char *)"Start Mirroractuator 2.0");
+    uart_com.send_text((char *)"Start Mirroractuator 2.6");
     while(1)
         ThisThread::sleep_for(200);
         

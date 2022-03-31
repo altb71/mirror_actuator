@@ -13,10 +13,15 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_mk = mk;
     v_cntrl[0].setup(0.017,3.48,0,1,Ts,-0.8,0.8);
     v_cntrl[1].setup(0.014,2.76,0,1,Ts,-0.8,0.8);
-    Kv[0] = 130;
-    Kv[1] = 130;
+    Kv[0] = 118;
+    Kv[1] = 118;
     ti.reset();
     ti.start();
+    //controller_type = IDENT_VEL_PLANT; // use 1st version og GPA constructor in main.cpp (line ~23)
+    //controller_type = VEL_CNTRL;
+    //controller_type = IDENT_POS_PLANT;   // use 2nd version og GPA constructor in main.cpp (line ~24)
+    //controller_type = POS_CNTRL;
+    controller_type = CIRCLE;
     }
 
 // decontructor for controller loop
@@ -25,50 +30,61 @@ ControllerLoop::~ControllerLoop() {}
 // ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void ControllerLoop::loop(void){
-    float i_des, v_des;
+    float i_des[2], v_des;
     uint8_t k = 0;
+    float phi_des[2],dphi,error;
+    float om = 2*3.1415*4;
+    uint8_t mot_num = 1;
     while(1)
         {
         ThisThread::flags_wait_any(threadFlag);
         // THE LOOP ------------------------------------------------------------
         m_sa->read_encoders_calc_speed();       // first read encoders and calculate speed
-        // -------------------------------------------------------------
-        // at very beginning: move system slowly to find the zero pulse
-        // set "if(0)" if you like to ommit at beginning
-        if(0)//!is_initialized) //this is for initialization (find Index pulse)
+        float tim = ti.read();
+        i_des[0] = i_des[1] = 0;
+        switch(controller_type)
             {
-            find_index();
-            if(0)//index1.positionAtIndexPulse != 0 && index2.positionAtIndexPulse != 0) 
-                is_initialized=true;
+            case IDENT_VEL_PLANT:
+                i_des[mot_num] = myGPA.update(i_des[mot_num], m_data->sens_Vphi[mot_num]);
+                break;
+            case VEL_CNTRL:
+                v_des = myDataLogger.get_set_value(tim);
+                error = v_des - m_data->sens_Vphi[mot_num];
+                i_des[mot_num] = v_cntrl[mot_num](error);
+                myDataLogger.write_to_log(tim,v_des,m_data->sens_Vphi[mot_num],i_des[mot_num]); 
+                break;
+            case IDENT_POS_PLANT:
+                v_des = myGPA.update(v_des, m_data->sens_phi[mot_num]);;
+                error = v_des - m_data->sens_Vphi[mot_num];
+                i_des[mot_num] = v_cntrl[mot_num](error);
+                break;
+            case POS_CNTRL:
+                phi_des[mot_num] = myDataLogger.get_set_value(tim);
+                dphi = phi_des[mot_num] - m_data->sens_phi[mot_num];
+                v_des = Kv[mot_num] * dphi;
+                error = v_des - m_data->sens_Vphi[mot_num];
+                i_des[mot_num] = v_cntrl[mot_num](error);
+                myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
+            case CIRCLE:
+                phi_des[0] = .2 * cos(om * tim); 
+                phi_des[1] = .2 * sin(om * tim);
+                for(uint8_t k=0;k<2;k++)
+                    {
+                    dphi = phi_des[k] - m_data->sens_phi[k];
+                    v_des = Kv[k] * dphi;
+                    error = v_des - m_data->sens_Vphi[k];
+                    i_des[k] = v_cntrl[k](error);
+                    }
+                break;
+            default:
+                break;
             }
-        else
-            {
-            
-            // ------------------------ do the control first
-            // calculate desired currents here, you can do "anything" here, 
-            // if you like to refer to values e.g. from the gui or from the trafo,
-            // please use m_data->xxx values, 
-            
-            // ------------------------ pos contrl
-            float phi_des = myDataLogger.get_set_value(ti.read());
-            float dphi = phi_des - m_data->sens_phi[0];
-            i_des = myGPA.update(i_des,m_data->sens_Vphi[0]);
-            //v_des = Kv[0] * dphi;
-            //v_des = myDataLogger.get_set_value(ti.read());
-            // Motor 1
-            //float error = v_des - m_data->sens_Vphi[0];
-            //i_des = v_cntrl[0](error);
-            m_sa->write_current(0,i_des);
-            // Motor 2
-            //error = v_des/8 - m_data->sens_Vphi[1];
-            //i_des = v_cntrl[1](error);
-            m_sa->write_current(1,0);
+            // Motor 1 or 2
+            m_sa->write_current(0,i_des[0]);
+            m_sa->write_current(1,i_des[1]);
             // enabling all
             m_sa->enable_motors(true);      // enable motors
             m_sa->set_laser_on_off(m_data->laser_on);
-            //myDataLogger.write_to_log(ti.read(),phi_des,m_data->sens_phi[0],i_des); 
-
-            }
         if(++k>=10)
             {
             m_mk->P2X(m_data->sens_phi,m_data->est_xy);
