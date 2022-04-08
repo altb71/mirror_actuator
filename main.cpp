@@ -21,7 +21,7 @@ void reset_data(Data_Xchange *);
 //----------------------------------------- global variables (uhh!) ---------------------------
 //init values:    (f0,   f1, nbPts, A0, A1, Ts)
 //GPA          myGPA(5 , 1000,    30,.35,.5, Ts); // % para for vel-cntrl
-GPA          myGPA( 1,  120,    30,100,10, Ts); // para for position controller
+GPA          myGPA( 1,  150,    30,100,10, Ts); // para for position controller
 
 
 DataLogger myDataLogger(1);
@@ -45,15 +45,14 @@ int main()
     serial_port.set_baud(115200);
     serial_port.set_format(8,BufferedSerial::None,1);
     serial_port.set_blocking(false); // force to send whenever possible and data is there
-    mk.set_offsets(0,0);          // individal set values for global position
+    hardware.set_enc_offsets(1003-18,3803+47);          // individal set values for global position
     mk.trafo_is_on =  true;
 
     loop.init_controllers();
     uart_com.start_uart();
     loop.start_loop();
     ThisThread::sleep_for(200);
-    printf("StartLoop\r\n");
-    uart_com.send_text((char *)"Start Mirroractuator 2.6");
+    uart_com.send_text((char *)"Start Mirroractuator 2.7");
     while(1)
         ThisThread::sleep_for(200);
         

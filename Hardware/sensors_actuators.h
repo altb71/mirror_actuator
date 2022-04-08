@@ -23,12 +23,16 @@ public:
     float get_om(uint8_t);          // get speed of motor k
     void set_des_current(uint8_t);  // set desired current on actuator
     void enable_motors(bool);       // enable/disable motors via DigitalOut, send a "true" and also press button
+    void force_enable_motors(bool);       // enable/disable motors via DigitalOut, send a "true" and also press button
+    bool motors_are_referenced(void);
     void write_current(uint8_t,float);  // write current to motors (0,...) for motor 1, (1,...) for motor 2
     void set_laser_on_off(bool);    // set laser on or off
+    void set_enc_offsets(float,float);
+    int16_t enc_offsets[2];
+    DigitalIn big_button;         // Enable button an backside
 private:
     IIR_filter di1;
     IIR_filter di2;
-    DigitalIn big_button;         // Enable button an backside
     ///------------- Encoder -----------------------
     EncoderCounter counter1;    // initialize counter on PA_6 and PC_7
     InterruptIn indexpulse1;

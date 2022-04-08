@@ -16,22 +16,36 @@ sensors_actuators::sensors_actuators(Data_Xchange *data,float Ts) : di1(.0005,Ts
     counter1.reset();   // encoder reset
     counter2.reset();   // encoder reset
     this->set_laser_on_off(false);
+    enc_offsets[0] = enc_offsets[1] = 0;
+    
 }
 sensors_actuators::~sensors_actuators() {} 
 
 void sensors_actuators::read_encoders_calc_speed(void)
 {
-    m_data->sens_phi[0] = uw1(counter1);
-    m_data->sens_phi[1] = uw2(counter2);
+    m_data->sens_phi[0] = uw1(counter1 - enc_offsets[0] - index1.getPositionAtIndexPulse());
+    m_data->sens_phi[1] = uw2(counter2 - enc_offsets[1] - index2.getPositionAtIndexPulse());
     m_data->sens_Vphi[0] = di1(m_data->sens_phi[0]);
     m_data->sens_Vphi[1] = di2(m_data->sens_phi[1]);
+}
+void sensors_actuators::set_enc_offsets(float o1,float o2)
+{
+    enc_offsets[0] = o1;
+    enc_offsets[1] = o2;
 }
 
 void sensors_actuators::enable_motors(bool enable)
 {
     i_enable = big_button && enable;    
 }
-
+void sensors_actuators::force_enable_motors(bool enable)
+{
+    i_enable = enable;    
+}
+bool sensors_actuators::motors_are_referenced(void)
+{
+    return (index1.getPositionAtIndexPulse() !=0 && index2.getPositionAtIndexPulse() !=0);
+}
 void sensors_actuators::write_current(uint8_t mot_nb, float i_des)
 {
     if(mot_nb== 0)
