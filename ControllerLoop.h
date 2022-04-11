@@ -35,11 +35,13 @@ public:
 
 private:
     void loop(void);
+    void reference_loop(void);
     Thread thread;
     Ticker ticker;
     ThreadFlag threadFlag;
     Timer ti;
     float Ts;
+    float i_des[2];
     void sendSignal();
     bool is_initialized;
     void find_index(void);

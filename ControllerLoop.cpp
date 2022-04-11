@@ -17,6 +17,7 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     Kv[1] = 118;
     ti.reset();
     ti.start();
+    i_des[0] = i_des[1] = 0;
     //controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
     //controller_type = VEL_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
@@ -30,28 +31,20 @@ ControllerLoop::~ControllerLoop() {}
 // ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void ControllerLoop::loop(void){
-    float i_des[2], v_des;
+    float v_des;
     uint8_t k = 0;
     float phi_des[2],dphi,error;
-    float om = 2*3.1415* 5;
+    float om = 2*3.1415*4;
     uint8_t mot_num = 1;
-    float xy_des[2];
     while(1)
         {
         ThisThread::flags_wait_any(threadFlag);
         // THE LOOP ------------------------------------------------------------
         m_sa->read_encoders_calc_speed();       // first read encoders and calculate speed
-        i_des[0] =i_des[1] = 0;
         if(!m_sa->motors_are_referenced())
-            {                
-                v_des = 5;
-                error = v_des - m_data->sens_Vphi[0];
-                i_des[0] = v_cntrl[0](error);
-                error = v_des - m_data->sens_Vphi[1];
-                i_des[1] = v_cntrl[1](error);
-                m_sa->force_enable_motors(true);
-            }
-        else{
+            reference_loop();
+        else
+            {
             float tim = ti.read();
             i_des[0] = i_des[1] = 0;
             switch(controller_type)
@@ -79,11 +72,8 @@ void ControllerLoop::loop(void){
                     myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
                     break;
                 case CIRCLE:
-                    xy_des[0] = 10 * cos(om * tim); 
-                    xy_des[1] = 10 * sin(om * tim);
-                    //phi_des[0] = 0.2 * cos(om * tim); 
-                    //phi_des[1] = 0.2 * sin(om * tim);
-                    m_mk->X2P(xy_des,phi_des);
+                    phi_des[0] = .2 * cos(om * tim); 
+                    phi_des[1] = .2 * sin(om * tim);
                     for(uint8_t k=0;k<2;k++)
                         {
                         dphi = phi_des[k] - m_data->sens_phi[k];
@@ -97,7 +87,7 @@ void ControllerLoop::loop(void){
                 }
                 m_sa->enable_motors(true);      // enable motors
             }
-                // Motor 1 or 2
+            // Motor 1 or 2
             m_sa->write_current(0,i_des[0]);
             m_sa->write_current(1,i_des[1]);
             // enabling all
@@ -111,6 +101,18 @@ void ControllerLoop::loop(void){
         }// endof the main loop
 }
 
+// ----------------------------------------------------------------------------
+// this is the main loop called every Ts with high priority
+void ControllerLoop::reference_loop(void){
+    float error;
+    m_sa->read_encoders_calc_speed();       // first read encoders and calculate speed
+    error = 5 - m_data->sens_Vphi[0];
+    i_des[0] = v_cntrl[0](error);
+    error = 5 - m_data->sens_Vphi[1];
+    i_des[1] = v_cntrl[1](error);
+    m_sa->force_enable_motors(true);
+}
+// ----------------------------------------------------------------------------
 void ControllerLoop::sendSignal() {
     thread.flags_set(threadFlag);
 }
@@ -119,7 +121,6 @@ void ControllerLoop::start_loop(void)
     thread.start(callback(this, &ControllerLoop::loop));
     ticker.attach(callback(this, &ControllerLoop::sendSignal), Ts);
 }
-
 float ControllerLoop::pos_cntrl(float d_phi)
 {
    
