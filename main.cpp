@@ -45,8 +45,9 @@ int main()
     serial_port.set_baud(115200);
     serial_port.set_format(8,BufferedSerial::None,1);
     serial_port.set_blocking(false); // force to send whenever possible and data is there
-    hardware.set_enc_offsets(1037,-188);          // individal set values for global position
+    hardware.set_enc_offsets(985,-157);          // individal set values for global position
     mk.trafo_is_on =  true;
+
 
     loop.init_controllers();
     uart_com.start_uart();

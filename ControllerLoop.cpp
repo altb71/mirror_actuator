@@ -11,10 +11,11 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
-    v_cntrl[0].setup(0.017,3.48,0,1,Ts,-0.8,0.8);
-    v_cntrl[1].setup(0.014,2.76,0,1,Ts,-0.8,0.8);
-    Kv[0] = 118;
-    Kv[1] = 118;
+    v_cntrl[0].setup(0.019, 3.333, 2.36111e-05, 0.0005,Ts,-.8,.8);//(0.01,1,0,1,Ts,-0.8,0.8);
+    v_cntrl[1].setup(0.019, 3.333, 2.36111e-05, 0.0005,Ts,-.8,.8);
+    //v_cntrl[1].setup(0.01,1,0,1,Ts,-0.8,0.8);
+    Kv[0] = 120;
+    Kv[1] = 120;  
     ti.reset();
     ti.start();
     i_des[0] = i_des[1] = 0;
@@ -27,14 +28,15 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
 
 // decontructor for controller loop
 ControllerLoop::~ControllerLoop() {}
-
+  
 // ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void ControllerLoop::loop(void){
     float v_des;
     uint8_t k = 0;
     float phi_des[2],dphi,error;
-    float om = 2*3.1415*4;
+    float xy_des[2];
+    float om = 2*3.1415 *20;
     uint8_t mot_num = 1;
     while(1)
         {
@@ -72,8 +74,9 @@ void ControllerLoop::loop(void){
                     myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
                     break;
                 case CIRCLE:
-                    phi_des[0] = 0*.2 * cos(om * tim); 
-                    phi_des[1] = 0*.2 * sin(om * tim);
+                    xy_des[0] = 25+25*cos(om * tim); 
+                    xy_des[1] = 25 * sin(om * tim);
+                    m_mk->X2P(xy_des,phi_des);
                     for(uint8_t k=0;k<2;k++)
                         {
                         dphi = phi_des[k] - m_data->sens_phi[k];
@@ -92,11 +95,6 @@ void ControllerLoop::loop(void){
             m_sa->write_current(1,i_des[1]);
             // enabling all
             m_sa->set_laser_on_off(m_data->laser_on);
-        if(++k>=10)
-            {
-            m_mk->P2X(m_data->sens_phi,m_data->est_xy);
-            k = 0;
-            }
             
         }// endof the main loop
 }

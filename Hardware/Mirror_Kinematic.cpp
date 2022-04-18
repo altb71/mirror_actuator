@@ -3,7 +3,7 @@
 Mirror_Kinematic::Mirror_Kinematic(Data_Xchange *data) 
 {
     this->m_data = data;
-    screen_h = 102;
+    screen_h = 98;
     screen_d = 4;
     dist_L = 16;
     inc_offset[0] = inc_offset[1] = 0;

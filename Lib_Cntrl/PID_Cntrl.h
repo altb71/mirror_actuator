@@ -23,7 +23,7 @@ public:
 
 
 private:
-    float kp,ki,kd,tau_f,Ts,uMax,uMin;
+    float kp,ki,kd,tau_f,Ts,uMax,uMin,b01,a0;
     float Ipart,Dpart,e_old;
 
 };
