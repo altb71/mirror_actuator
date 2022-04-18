@@ -72,8 +72,8 @@ void ControllerLoop::loop(void){
                     myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
                     break;
                 case CIRCLE:
-                    phi_des[0] = .2 * cos(om * tim); 
-                    phi_des[1] = .2 * sin(om * tim);
+                    phi_des[0] = 0*.2 * cos(om * tim); 
+                    phi_des[1] = 0*.2 * sin(om * tim);
                     for(uint8_t k=0;k<2;k++)
                         {
                         dphi = phi_des[k] - m_data->sens_phi[k];
