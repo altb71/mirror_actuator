@@ -11,8 +11,8 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
-    v_cntrl[0].setup(0.019, 3.333, 2.36111e-05, 0.0005,Ts,-.8,.8);//(0.01,1,0,1,Ts,-0.8,0.8);
-    v_cntrl[1].setup(0.019, 3.333, 2.36111e-05, 0.0005,Ts,-.8,.8);
+    v_cntrl[0].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);//(0.01,1,0,1,Ts,-0.8,0.8);
+    v_cntrl[1].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);
     //v_cntrl[1].setup(0.01,1,0,1,Ts,-0.8,0.8);
     Kv[0] = 120;
     Kv[1] = 120;  
@@ -35,8 +35,10 @@ void ControllerLoop::loop(void){
     float v_des;
     uint8_t k = 0;
     float phi_des[2],dphi,error;
-    float xy_des[2];
-    float om = 2*3.1415 *20;
+    float xy_des[2]; 
+    float om = 2*3.1415 *10;
+    float v_ff[2];
+    float Amp = 0.2;
     uint8_t mot_num = 1;
     while(1)
         {
@@ -74,14 +76,15 @@ void ControllerLoop::loop(void){
                     myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
                     break;
                 case CIRCLE:
-                    xy_des[0] = 25+25*cos(om * tim); 
-                    xy_des[1] = 25 * sin(om * tim);
-                    m_mk->X2P(xy_des,phi_des);
+                    phi_des[0] = Amp * cos(om*tim);
+                    phi_des[1] = Amp * sin(om*tim); 
+                    v_ff[0] = -Amp * om * sin(om*tim);
+                    v_ff[1] = Amp * om * cos(om*tim);
                     for(uint8_t k=0;k<2;k++)
                         {
                         dphi = phi_des[k] - m_data->sens_phi[k];
                         v_des = Kv[k] * dphi;
-                        error = v_des - m_data->sens_Vphi[k];
+                        error = v_des + 0*v_ff[k] - m_data->sens_Vphi[k];
                         i_des[k] = v_cntrl[k](error);
                         }
                     break;
