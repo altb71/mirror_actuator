@@ -53,7 +53,7 @@ int main()
     uart_com.start_uart();
     loop.start_loop();
     ThisThread::sleep_for(200);
-    uart_com.send_text((char *)"Start Mirroractuator 2.7");
+    uart_com.send_text((char *)"Start Mirroractuator 2.9");
     while(1)
         ThisThread::sleep_for(200);
         

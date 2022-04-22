@@ -16,6 +16,9 @@ public:
     bool trafo_is_on;
     bool external_control;
     bool controller_is_on;
+    void calc_J_dxdp(float*, float[2][2]);
+    void calc_iJ(float[2][2],float[2][2]);
+    
 private:
     float old_phi[2];
     Data_Xchange *m_data;

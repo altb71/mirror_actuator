@@ -23,7 +23,8 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     //controller_type = VEL_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
     //controller_type = POS_CNTRL;
-    controller_type = CIRCLE;
+    //controller_type = CIRCLE;
+    controller_type = CIRCLE_XY;
     }
 
 // decontructor for controller loop
@@ -32,14 +33,20 @@ ControllerLoop::~ControllerLoop() {}
 // ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void ControllerLoop::loop(void){
-    float v_des;
+    float v_des[2];
     uint8_t k = 0;
     float phi_des[2],dphi,error;
     float xy_des[2]; 
-    float om = 2*3.1415 *10;
+    float om = 2*3.1415 *5;
     float v_ff[2];
-    float Amp = 0.2;
+    float Amp = 50;
     uint8_t mot_num = 1;
+    float J[2][2];
+    float iJ[2][2];
+    xy_des[0] = xy_des[1] = 0.0;
+    m_mk->calc_J_dxdp(xy_des,J);
+    m_mk->calc_iJ(J,iJ);
+    
     while(1)
         {
         ThisThread::flags_wait_any(threadFlag);
@@ -57,21 +64,21 @@ void ControllerLoop::loop(void){
                     i_des[mot_num] = myGPA.update(i_des[mot_num], m_data->sens_Vphi[mot_num]);
                     break;
                 case VEL_CNTRL:
-                    v_des = myDataLogger.get_set_value(tim);
-                    error = v_des - m_data->sens_Vphi[mot_num];
+                    v_des[mot_num] = myDataLogger.get_set_value(tim);
+                    error = v_des[mot_num] - m_data->sens_Vphi[mot_num];
                     i_des[mot_num] = v_cntrl[mot_num](error);
-                    myDataLogger.write_to_log(tim,v_des,m_data->sens_Vphi[mot_num],i_des[mot_num]); 
+                    myDataLogger.write_to_log(tim,v_des[mot_num],m_data->sens_Vphi[mot_num],i_des[mot_num]); 
                     break;
                 case IDENT_POS_PLANT:
-                    v_des = myGPA.update(v_des, m_data->sens_phi[mot_num]);;
-                    error = v_des - m_data->sens_Vphi[mot_num];
+                    v_des[mot_num] = myGPA.update(v_des[mot_num], m_data->sens_phi[mot_num]);;
+                    error = v_des[mot_num] - m_data->sens_Vphi[mot_num];
                     i_des[mot_num] = v_cntrl[mot_num](error);
                     break;
                 case POS_CNTRL:
                     phi_des[mot_num] = myDataLogger.get_set_value(tim);
                     dphi = phi_des[mot_num] - m_data->sens_phi[mot_num];
-                    v_des = Kv[mot_num] * dphi;
-                    error = v_des - m_data->sens_Vphi[mot_num];
+                    v_des[mot_num] = Kv[mot_num] * dphi;
+                    error = v_des[mot_num] - m_data->sens_Vphi[mot_num];
                     i_des[mot_num] = v_cntrl[mot_num](error);
                     myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
                     break;
@@ -83,8 +90,26 @@ void ControllerLoop::loop(void){
                     for(uint8_t k=0;k<2;k++)
                         {
                         dphi = phi_des[k] - m_data->sens_phi[k];
-                        v_des = Kv[k] * dphi;
-                        error = v_des + 0*v_ff[k] - m_data->sens_Vphi[k];
+                        v_des[k] = Kv[k] * dphi;
+                        error = v_des[k] + v_ff[k] - m_data->sens_Vphi[k];
+                        i_des[k] = v_cntrl[k](error);
+                        }
+                    break;
+                case CIRCLE_XY:
+                    xy_des[0] = Amp * cos(om*tim);
+                    xy_des[1] = Amp * sin(om*tim);
+                    v_des[0] = -Amp * om * sin(om*tim);
+                    v_des[1] = Amp * om * cos(om*tim);
+                    m_mk->X2P(xy_des, phi_des);
+                    for(uint8_t k=0;k<2;k++)
+                        {
+                        dphi = phi_des[k] - m_data->sens_phi[k];
+                        if (m_data->laser_on) // abuse Laser switch on gui to enable/disable feedfwd.!
+                            v_ff[k] = iJ[k][0] * v_des[0] + iJ[k][1] * v_des[1]; 
+                        else 
+                            v_ff[k] = 0; 
+                        v_des[k] = Kv[k] * dphi + v_ff[k];
+                        error = v_des[k] + 0*v_ff[k] - m_data->sens_Vphi[k];
                         i_des[k] = v_cntrl[k](error);
                         }
                     break;
@@ -97,7 +122,7 @@ void ControllerLoop::loop(void){
             m_sa->write_current(0,i_des[0]);
             m_sa->write_current(1,i_des[1]);
             // enabling all
-            m_sa->set_laser_on_off(m_data->laser_on);
+            m_sa->set_laser_on_off(true); //m_data->laser_on);
             
         }// endof the main loop
 }

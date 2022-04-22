@@ -17,6 +17,8 @@
 #define IDENT_POS_PLANT 30
 #define POS_CNTRL   40
 #define CIRCLE   50
+#define CIRCLE_XY   55
+
 
 
 

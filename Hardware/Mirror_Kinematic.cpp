@@ -79,9 +79,41 @@ bool Mirror_Kinematic::X2P(float *X, float *P)
             P[0] -= J12 * dy;
             P[1] -= J21 * dx;
         }
-        while((dx*dx+dy*dy) > 1e-3 && ++k<20);
+        while((dx*dx+dy*dy) > 1e-3 && ++k<max_num_it);
     m_data->num_it = k;
     old_phi[0] = P[0];
     old_phi[1] = P[1];
     return true;
+}
+void Mirror_Kinematic::calc_J_dxdp(float *P, float J[2][2])
+{
+    float del = 0.001;
+    float up[2];
+    float lo[2];
+    float f[2];
+    float dP[2];
+    dP[1] = P[1];
+    dP[0] = P[0]+del;
+    P2X(dP,up);
+    dP[0] = P[0]-del;
+    P2X(dP,lo);
+    J[0][0] = (up[0]-lo[0])/(2*del);
+    J[1][0] = (up[1]-lo[1])/(2*del);
+    // ------- 2nd column
+    dP[0] = P[0];
+    dP[1] = P[1]+del;
+    P2X(dP,up);
+    dP[1] = P[1]-del;
+    P2X(dP,lo);
+    J[0][1] = (up[0]-lo[0])/(2*del);
+    J[1][1] = (up[1]-lo[1])/(2*del);
+}
+void Mirror_Kinematic::calc_iJ(float J[2][2],float iJ[2][2])
+{
+    float det = J[0][0]*J[1][1] - J[0][1]*J[1][0];
+    iJ[0][0] = J[1][1]/det;
+    iJ[0][1] = -J[0][1]/det;
+    iJ[1][0] = -J[1][0]/det;
+    iJ[1][1]=-J[0][0]/det;
+
 }
