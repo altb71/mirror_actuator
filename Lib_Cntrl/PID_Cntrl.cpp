@@ -16,6 +16,8 @@ PID_Cntrl::PID_Cntrl(float P, float I, float D, float tau_f, float Ts, float uMi
     this->Ts = Ts;
     this->uMin = uMin;
     this->uMax = uMax;
+    this->b01 = D*2.0f/(Ts+2.0f*tau_f);
+    this->a0 = (Ts-2.0f*tau_f)/(Ts+2.0f*tau_f);
     reset(0);
 }
 void PID_Cntrl::setup(float P, float I, float D, float tau_f, float Ts, float uMin, float uMax)
@@ -53,7 +55,7 @@ float PID_Cntrl::update(float e)
     e_old = e;
     Ipart = saturate(Ipart);
 
-    return saturate(Ppart + Ipart); 
+    return saturate(Ppart + Ipart + Dpart); 
    
 }
 

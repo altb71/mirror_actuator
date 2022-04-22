@@ -11,20 +11,18 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
-    v_cntrl[0].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);//(0.01,1,0,1,Ts,-0.8,0.8);
-    v_cntrl[1].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);
-    //v_cntrl[1].setup(0.01,1,0,1,Ts,-0.8,0.8);
-    Kv[0] = 120;
-    Kv[1] = 120;  
+    v_cntrl[0].setup( 0.0179,1.91,3.66e-05,0.000625,Ts,-.8,.8);
+    v_cntrl[1].setup( 0.0179,1.91,3.66e-05,0.000625,Ts,-.8,.8);
+    Kv[0] = 250;
+    Kv[1] = 250;  
     ti.reset();
     ti.start();
     i_des[0] = i_des[1] = 0;
     //controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
     //controller_type = VEL_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
-    //controller_type = POS_CNTRL;
+    controller_type = POS_CNTRL;
     //controller_type = CIRCLE;
-    controller_type = CIRCLE_XY;
     }
 
 // decontructor for controller loop
@@ -92,24 +90,6 @@ void ControllerLoop::loop(void){
                         dphi = phi_des[k] - m_data->sens_phi[k];
                         v_des[k] = Kv[k] * dphi;
                         error = v_des[k] + v_ff[k] - m_data->sens_Vphi[k];
-                        i_des[k] = v_cntrl[k](error);
-                        }
-                    break;
-                case CIRCLE_XY:
-                    xy_des[0] = Amp * cos(om*tim);
-                    xy_des[1] = Amp * sin(om*tim);
-                    v_des[0] = -Amp * om * sin(om*tim);
-                    v_des[1] = Amp * om * cos(om*tim);
-                    m_mk->X2P(xy_des, phi_des);
-                    for(uint8_t k=0;k<2;k++)
-                        {
-                        dphi = phi_des[k] - m_data->sens_phi[k];
-                        if (m_data->laser_on) // abuse Laser switch on gui to enable/disable feedfwd.!
-                            v_ff[k] = iJ[k][0] * v_des[0] + iJ[k][1] * v_des[1]; 
-                        else 
-                            v_ff[k] = 0; 
-                        v_des[k] = Kv[k] * dphi + v_ff[k];
-                        error = v_des[k] + 0*v_ff[k] - m_data->sens_Vphi[k];
                         i_des[k] = v_cntrl[k](error);
                         }
                     break;
