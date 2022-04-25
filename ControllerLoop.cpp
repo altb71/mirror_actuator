@@ -11,18 +11,32 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
-    v_cntrl[0].setup( 0.0179,1.91,3.66e-05,0.000625,Ts,-.8,.8);
-    v_cntrl[1].setup( 0.0179,1.91,3.66e-05,0.000625,Ts,-.8,.8);
-    Kv[0] = 250;
-    Kv[1] = 250;  
+    bool PID_CNTRL = true;   
+    if(PID_CNTRL) // with D- part and higher bandwidth
+        {
+        v_cntrl[0].setup( 0.0179,1.91,3.66e-05,0.000625,Ts,-.8,.8);
+        v_cntrl[1].setup( 0.0179,1.91,3.66e-05,0.000625,Ts,-.8,.8);
+        diff_ff[0].setup(2*Ts, Ts);
+        diff_ff[1].setup(2*Ts, Ts);
+        Kv[0] = 250;
+        Kv[1] = 250;  
+        }
+    else        // use only PI-controller
+        {
+        v_cntrl[0].setup(0.017,3.48,0,1,Ts,-0.8,0.8);
+        v_cntrl[1].setup(0.014,2.76,0,1,Ts,-0.8,0.8);
+        Kv[0] = 118;
+        Kv[1] = 118;
+        }
     ti.reset();
     ti.start();
     i_des[0] = i_des[1] = 0;
     //controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
     //controller_type = VEL_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
-    controller_type = POS_CNTRL;
+    //controller_type = POS_CNTRL;
     //controller_type = CIRCLE;
+    controller_type = CIRCLE_XY;
     }
 
 // decontructor for controller loop
@@ -35,7 +49,8 @@ void ControllerLoop::loop(void){
     uint8_t k = 0;
     float phi_des[2],dphi,error;
     float xy_des[2]; 
-    float om = 2*3.1415 *5;
+    float xy_act[2]; 
+    float om = 2*3.1415 *10;
     float v_ff[2];
     float Amp = 50;
     uint8_t mot_num = 1;
@@ -74,8 +89,9 @@ void ControllerLoop::loop(void){
                     break;
                 case POS_CNTRL:
                     phi_des[mot_num] = myDataLogger.get_set_value(tim);
-                    dphi = phi_des[mot_num] - m_data->sens_phi[mot_num];
-                    v_des[mot_num] = Kv[mot_num] * dphi;
+                    dphi = phi_des[mot_num] - m_data->sens_phi[mot_num];                    // tracking error on phi
+                    v_ff[mot_num] = diff_ff[mot_num](phi_des[mot_num]);  // 
+                    v_des[mot_num] = Kv[mot_num] * dphi + v_ff[mot_num]*m_data->laser_on;   // add feed-forward, abuse laser switch to enable/disable feed-forward!!
                     error = v_des[mot_num] - m_data->sens_Vphi[mot_num];
                     i_des[mot_num] = v_cntrl[mot_num](error);
                     myDataLogger.write_to_log(tim,phi_des[mot_num],m_data->sens_phi[mot_num],i_des[mot_num]); 
@@ -83,8 +99,13 @@ void ControllerLoop::loop(void){
                 case CIRCLE:
                     phi_des[0] = Amp * cos(om*tim);
                     phi_des[1] = Amp * sin(om*tim); 
-                    v_ff[0] = -Amp * om * sin(om*tim);
-                    v_ff[1] = Amp * om * cos(om*tim);
+                    if(m_data->laser_on)
+                        {
+                        v_ff[0] = -Amp * om * sin(om*tim) * m_data->laser_on;
+                        v_ff[1] = Amp * om * cos(om*tim) * m_data->laser_on;
+                        }
+                    else
+                        v_ff[0] = v_ff[1] = 0.0;
                     for(uint8_t k=0;k<2;k++)
                         {
                         dphi = phi_des[k] - m_data->sens_phi[k];
@@ -92,6 +113,31 @@ void ControllerLoop::loop(void){
                         error = v_des[k] + v_ff[k] - m_data->sens_Vphi[k];
                         i_des[k] = v_cntrl[k](error);
                         }
+                    break;
+                case CIRCLE_XY: // make a circle in the xy-plane
+                    xy_des[0] = Amp * cosf(om*tim);      // desired x-values
+                    xy_des[1] = Amp * sinf(om*tim);      // desired y-values
+                    v_des[0] = -Amp * om * sinf(om*tim); // desired vx-values
+                    v_des[1] = Amp * om * cosf(om*tim);  // desired vy-values
+                    m_mk->X2P(xy_des, phi_des);     // calculate desired angular values
+                    if(m_data->laser_on)        // abuse laser switch to enable/disable feed-forward
+                        {
+                        m_mk->calc_J_dxdp(phi_des,J);   // calculate J in every step (maybe problematic, due to calculation time)
+                        m_mk->calc_iJ(J,iJ);
+                        v_ff[0] = (iJ[0][0]*v_des[0] + iJ[0][1]*v_des[1]); // 
+                        v_ff[1] = (iJ[1][0]*v_des[0] + iJ[1][1]*v_des[1]);
+                        }
+                    else
+                        v_ff[0] = v_ff[1] = 0.0;
+                    for(uint8_t k=0;k<2;k++)
+                        {
+                        dphi = phi_des[k] - m_data->sens_phi[k];
+                        v_des[k] = Kv[k] * dphi;
+                        error = v_des[k] + v_ff[k] - m_data->sens_Vphi[k];
+                        i_des[k] = v_cntrl[k](error);
+                        }
+                    m_mk->P2X(m_data->sens_phi,m_data->est_xy);
+                    myDataLogger.write_to_log(xy_des[0],xy_des[1],m_data->est_xy[0],m_data->est_xy[1]); 
                     break;
                 default:
                     break;

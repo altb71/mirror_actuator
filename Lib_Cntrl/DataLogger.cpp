@@ -39,26 +39,6 @@ void DataLogger::reset_data(void)
     new_data_available = false;
 }
 
-void DataLogger::write_to_log(float ti,float u,float x)
-{
-    if(log_status == 2 )
-        {
-        if(++ds_count == downsamp)
-            {
-            ds_count = 0;
-            log_data[count*N_col+0] = ti - ti_offset;
-            log_data[count*N_col+1] = u;
-            log_data[count*N_col+2] = x;
-            count++;
-            if(count >= N_row)
-                {
-                log_status = 3;
-                new_data_available = true;
-                packet = 0;
-                }
-            }
-        }
-}
 void DataLogger::write_to_log(float ti,float u,float x, float i)
 {
     if(log_status == 2 )
@@ -92,17 +72,17 @@ float DataLogger::get_set_value(float ti)
         switch(input_type)
             {
             case 1:                 // return a sequence of steps (see few lines below)
-                return StepSeq(ti);
+                return StepSeq(ti-ti_offset);
                 break;
             case 2:                 // return sine wave
                 return Amp*sinf((ti-ti_offset)*omega) + offset;
                 break;
             case 3:
-                return ZigZag(ti);  // return zigzag
+                return ZigZag(ti-ti_offset);  // return zigzag
                 break;
             default:
                 return 0;
-                break;
+                break; 
             }
         }
     return 0;

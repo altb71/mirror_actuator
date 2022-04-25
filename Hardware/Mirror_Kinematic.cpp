@@ -114,6 +114,6 @@ void Mirror_Kinematic::calc_iJ(float J[2][2],float iJ[2][2])
     iJ[0][0] = J[1][1]/det;
     iJ[0][1] = -J[0][1]/det;
     iJ[1][0] = -J[1][0]/det;
-    iJ[1][1]=-J[0][0]/det;
+    iJ[1][1] = J[0][0]/det;
 
 }
