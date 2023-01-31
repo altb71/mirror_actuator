@@ -6,15 +6,12 @@
 #include "mbed.h"
 #include "ThreadFlag.h"
 #include "data_structs.h"
-#include "Mirror_Kinematic.h"
 
 
 using namespace std;
 
 // "protocol" specifics
 
-#define BUF_LEN      	20  // max 256
-#define DATA_LEN      	20  // max 256
 
 // states
 #define IDLE    0
@@ -32,7 +29,7 @@ using namespace std;
 class uart_comm_thread{
 public:
 // public members
-    uart_comm_thread(Data_Xchange *,Mirror_Kinematic *, BufferedSerial*,float);
+    uart_comm_thread(Data_Xchange *, BufferedSerial*,float);
     virtual ~uart_comm_thread();
     void run(void);             // runs the statemachine, call this function periodicly, returns true when new data ready (only true for 1 cycle)
    // void request();         // request new set of data  
@@ -40,8 +37,8 @@ public:
 
     // public vars
     // public vars
-	const uint8_t N = DATA_LEN;
-	char 	buffer[256];     // RX buffer
+	char 	r_buffer[PACK_SIZE + 20];     // RX buffer
+    char 	s_buffer[PACK_SIZE + 20];     // RX buffer
 	void send_text(const char *);
 	
 private:
@@ -66,7 +63,6 @@ private:
     Mutex mutex;
 	void sendThreadFlag();
     Data_Xchange *m_data;
-    Mirror_Kinematic *m_mk;
 };
 
 #endif

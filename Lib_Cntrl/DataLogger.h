@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-#define N_ROW 250
+#define N_ROW 200
 #define N_COL 4
 
 
@@ -22,7 +22,6 @@ public:
     uint8_t input_type;       // 1 = step, 2 = sine
     void reset_data(void);
     bool new_data_available;
-    void write_to_log(float,float,float);
     void write_to_log(float,float,float,float);
     float get_set_value(float);
     float Amp,omega,offset;

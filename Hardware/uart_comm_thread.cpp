@@ -2,8 +2,6 @@
 #include <cstdint>
 #include "uart_comm_thread.h"
 
-
-
 extern DataLogger myDataLogger;
 
 extern GPA myGPA;
@@ -78,15 +76,15 @@ extern GPA myGPA;
 
 
 // #### constructor
-uart_comm_thread::uart_comm_thread(Data_Xchange *data,Mirror_Kinematic *mk,BufferedSerial *com, float Ts): thread(osPriorityBelowNormal, 4096)
+uart_comm_thread::uart_comm_thread(Data_Xchange *data,BufferedSerial *com, float Ts): thread(osPriorityNormal, 4096)
  {  
     // init serial
     this->uart = com;
     this->m_data = data;
-    this->m_mk = mk;
     this->Ts = Ts;
     this->csm = 0;
     gpa_stop_sent = false;
+    s_buffer[0]=254;s_buffer[1]=1;s_buffer[2]=255;	// standard pattern
 }
 
 // #### destructor
@@ -98,34 +96,38 @@ void uart_comm_thread::run(void)
     // returnvalue
     bool retVal = false;
 	uint8_t checksum,k;
-	uint16_t send_state =1011;
+	uint16_t send_state = 210;
+    uint8_t k1=0;
+    char buf[2];
 	while(true)
     	{
         ThisThread::flags_wait_any(threadFlag);
         //---  The LOOP --------------------------------------------------------
-        uint32_t num = uart->read(buffer, sizeof(buffer));
+        uint32_t num = uart->read(r_buffer, sizeof(r_buffer));
         if (num >0) 
     		{
-        	if(buffer[0] == 254 && buffer[1] == 1)
+            //send_text((char *)"received data");
+            //uint16_t n = sprintf (buf, "n: %d i: %d %d %d %d \r\n",n, r_buffer[0], r_buffer[1], r_buffer[2], r_buffer[3]);//send_text((char *)"received!");
+            //send_text(buf);
+        	if(r_buffer[0] == 254 && r_buffer[1] == 1)
             	{
             	if(analyse_received_data())
             			;//		led1 = !led1;
+               // send_text((char *)"analysed");
+               for(uint16_t k=0;k<256;k++)
+                   r_buffer[k] = 0;
             	}
             }
 		switch(send_state)
 			{
-			case 1011:
+			/*case 1011:
 				send(101,12,2*4,(char *)&(m_data->sens_phi[0]));		// send actual phi values (1 and 2)
 				send_state = 1012;
 				break;	
 			case 1012:
 				send(101,34,2*4,(char *)&(m_data->est_xy[0]));		// send actual xy values 
 				send_state = 210;
-				break;	
-			case 125:		// number of iterations in the trafo
-				send(125,1,1,(char *)&m_data->num_it);		
-				send_state = 210;
-				break;
+				break;	*/
 			case 210:		// number of iterations in the trafo
 				if(myDataLogger.new_data_available)
                     {
@@ -141,18 +143,23 @@ void uart_comm_thread::run(void)
                         ++myDataLogger.packet;
                     }
                 else
-                    send_state = 250;
-				break;
+                    ;
+                break;
             case 211:
-                send(210,99,0,buffer);
+                send(210,99,0,buf);
+                send_state = 212;
+                break;
+            case 212:
+                send_text((char *)"log data sended.");
                 send_state = 250;
                 break;
-			case 250:		// send GPA values
+            case 250:		// send GPA values
 				if(myGPA.new_data_available)
 					{
 					float dum[8];
 					myGPA.getGPAdata(dum);
 					send(250,1,32,(char *)&(dum[0]));	// send new values (8 floats)
+                    send_state = 210;
                     }
 				else if(myGPA.start_now)
 					{
@@ -160,18 +167,34 @@ void uart_comm_thread::run(void)
 					send(250,2,1,&dum);			// send start flag
 					myGPA.start_now = false;
 					gpa_stop_sent  = false;
+                    send_state = 251;
 					}
 				else if(myGPA.meas_is_finished && !gpa_stop_sent && !myGPA.new_data_available)
 					{
                     char dum = 0;
                     send(250,255,1,&dum);		// send stop flag
 					gpa_stop_sent = true;
+                    send_state = 252;
 					}
-				send_state = 1011;
+                else{
+                    send_state = 210;
+                    }
+				  send_state = 210;  
 				break;			
+            case 251:
+                send_text((char *)"GPA started");
+                send_state = 210;
+                break;
+            case 252:
+                send_text((char *)"GPA finished");
+                send_state = 210;
+                break;
+                    
 			default:
 				break;
 			}
+            uart->sync();
+
         }// loop
 }
 
@@ -183,6 +206,7 @@ void uart_comm_thread::start_uart(void){
 		
 		thread.start(callback(this, &uart_comm_thread::run));
 		ticker.attach(callback(this, &uart_comm_thread::sendThreadFlag), Ts);
+        //printf("Uart com thread started at %3.0f Hz\r\n",1/Ts);
 }
 // this is for realtime OS
 void uart_comm_thread::sendThreadFlag() {
@@ -194,12 +218,14 @@ void uart_comm_thread::send_text(const char *txt)
 	uint16_t N=0;
    	while(txt[N] != 0)		// get length of text
      	N++;
-    buffer[0]=254;buffer[1]=1;buffer[2]=255;	// standard pattern
-	buffer[3] = 241;
-	buffer[4] = 1;
-	buffer[5] = N%256;
-    buffer[6] = N/256;
-	uart->write(buffer, 7);
+    s_buffer[0] = 254;
+	s_buffer[1] = 1;
+	s_buffer[2] = 255;
+	s_buffer[3] = 241;
+	s_buffer[4] = 1;
+	s_buffer[5] = N%256;
+    s_buffer[6] = N/256;
+	uart->write(s_buffer, 7);
 	uart->write(txt,N);
     char dum = 0;
 	uart->write(&dum,1);		// line end
@@ -208,20 +234,20 @@ void uart_comm_thread::send_text(const char *txt)
 // ---------------------  send N char data --------------------------------------
 void uart_comm_thread::send(uint8_t id1, uint8_t id2, uint16_t N, char *m)
 {
-	char buffer[7], csm = 0;
-	/* Add header */
-	buffer[0] = 254;
-	buffer[1] = 1;
-	buffer[2] = 255;
+	char csm = 0;
+	/* Add header: first 3 bytes are set in constructor */
 	/* Add message IDs*/
-	buffer[3] = id1;
-	buffer[4] = id2;
+    s_buffer[0] = 254;
+	s_buffer[1] = 1;
+	s_buffer[2] = 255;
+	s_buffer[3] = id1;
+	s_buffer[4] = id2;
 	/* Add number of bytes*/
-	*(uint16_t *)&buffer[5] = N; // cast targt to appropriate data type
+	*(uint16_t *)&s_buffer[5] = N; // cast targt to appropriate data type
 	/* send header */
-    uart->write(buffer, 7);
+    uart->write(s_buffer, 7);
 	for (int i = 0; i < 7; ++i)
-		csm += buffer[i];
+		csm += s_buffer[i];
 	/* send data */
     if(N>0)
         uart->write(m,N);
@@ -232,108 +258,35 @@ void uart_comm_thread::send(uint8_t id1, uint8_t id2, uint16_t N, char *m)
 // -----------------------------------------------------------------------------
 // analyse data, see comments at top of this file for numbering
 bool uart_comm_thread::analyse_received_data(void){
-	char msg_id1 = buffer[3];
-	char msg_id2 = buffer[4];
-	uint16_t N = 256 * buffer[6] + buffer[5];
-	switch(msg_id1)
+	char msg_id1 = r_buffer[3];
+	char msg_id2 = r_buffer[4];
+	uint16_t N = 256 * r_buffer[6] + r_buffer[5];
+    char buf [20];
+    int n;
+    //n = sprintf (buf, "id1: %d id2: %d ", msg_id1, msg_id2);//send_text((char *)"received!");
+    //send_text(buf);
+
+    switch(msg_id1)
 		{
-		case 202:				// set desired phi or xy-values
-			if(N != 4)
-				return false;
-			switch(msg_id2)
-				{
-				case 1:
-					m_data->cntrl_phi_des[0] = *(float *)&buffer[7];
-					return true;
-					break;
-				case 2:
-					m_data->cntrl_phi_des[1] = *(float *)&buffer[7];
-					return true;
-					break;
-				case 3:
-					m_data->cntrl_xy_des[0] = 	*(float *)&buffer[7];
-					return true;
-					break;
-				case 4:
-					m_data->cntrl_xy_des[1] = *(float *)&buffer[7];
-					return true;
-					break;
-				default:
-					break;
-				}
-			break;		// case 202
-		case 203: 		// increment desired values
-			if(N != 4)
-				return false;
-			switch(msg_id2)
-				{
-				case 1:
-					m_data->cntrl_phi_des[0] += *(float *)&buffer[7];
-					return true;
-					break;
-				case 2:
-					m_data->cntrl_phi_des[1] += *(float *)&buffer[7];
-					return true;
-					break;
-				case 3:
-					m_data->cntrl_xy_des[0] += 	*(float *)&buffer[7];
-					return true;
-					break;
-				case 4:
-					m_data->cntrl_xy_des[1] += *(float *)&buffer[7];
-					return true;
-					break;
-				default:
-					break;
-				}
-			break;		// case 203
-        case 210:
+		case 210:
             switch(msg_id2)
                 {
                 case 101:           // receive start signal and Amp, Freq, offset values
                     if(myDataLogger.log_status == 1)
                         {
                         myDataLogger.reset_data();
-                        myDataLogger.input_type = (uint8_t)buffer[7];
-                        myDataLogger.Amp = *(float *)&buffer[8];
-                        myDataLogger.omega = *(float *)&buffer[12];
-                        myDataLogger.offset = *(float *)&buffer[16];
-                        myDataLogger.downsamp = (uint8_t)buffer[20];
+                        myDataLogger.input_type = (uint8_t)r_buffer[7];
+                        myDataLogger.Amp = *(float *)&r_buffer[8];
+                        myDataLogger.omega = *(float *)&r_buffer[12];
+                        myDataLogger.offset = *(float *)&r_buffer[16];
+                        myDataLogger.downsamp = (uint8_t)r_buffer[20];
                         send_text((char *)"Started time measure");
                         myDataLogger.log_status = 2;
                         }
                     break;
                 }
             break;      // case 210
-		case 220:				// switch laser on/off
-			if(N != 1)
-				return false;
-			switch(msg_id2)
-				{
-				case 1:
-					if(buffer[7] == 1)
-						m_data->laser_on = true;
-					else 
-						m_data->laser_on = false;
-					return true;
-					break;
-				}
-			break;
-		case 221:				// switch trafo on/off
-			if(N != 1)
-				return false;
-			switch(msg_id2)
-				{
-				case 1:
-					if(buffer[7] == 1)
-						m_mk->trafo_is_on = true;
-					else 
-						m_mk->trafo_is_on = false;
-					return true;
-					break;
-				}
-			break;
-		case 230:				// set internal/external control
+		/*case 230:				// set internal/external control
 			if(N != 1)
 				return false;
 			switch(msg_id2)
@@ -346,7 +299,7 @@ bool uart_comm_thread::analyse_received_data(void){
 					return true;
 					break;
 				}
-			break;
+			break;*/
 		}
 	return false;	
 }

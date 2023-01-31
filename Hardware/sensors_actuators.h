@@ -48,7 +48,7 @@ private:
     DigitalOut laser_on;
     //-------------------------------------
     LinearCharacteristics i2u;
-    LinearCharacteristics u2i;
+    
     Enc_unwrap_scale uw1;
     Enc_unwrap_scale uw2;
     Data_Xchange *m_data;

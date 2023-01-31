@@ -77,7 +77,7 @@ private:
     double  fexc;
     float   fexcPast;
     float   dfexcj;
-    int     i;
+    int     iN;
     int     j;
     double  scaleG;
     double  cr;

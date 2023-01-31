@@ -1,6 +1,5 @@
 /*
     GPA: Frequency point wise gain and phase analyser to measure a frequency respone function (FRF) of a dynamical system
-
          Hint:        If the plant has a pole at zero, is unstable or weakly damped the measurement has to be perfomed
                       in closed loop (this is NOT tfestimate, the algorithm is based on the one point DFT).
          Assumption:  The system is and remains at the desired steady state when the measurment starts
@@ -9,28 +8,21 @@
                       this is recommended if your controller does not have a rolloff. If a desired frequency point
                       is not measured (could not be reached) try to increase Nmeas.
             
-
     Instantiate option 0: ("Not a Jedi yet" users, for logarithmic equaly spaced frequency points)
-
         GPA(float fMin, float fMax, int NfexcDes, float Aexc0, float Aexc1, float Ts)
-
             fMin:       Minimal desired frequency that should be measured in Hz
             fMax:       Maximal desired frequency that should be measured in Hz
             NfexcDes:   Number of logarithmic equaly spaced frequency points between fMin and fMax
             Aexc0:      Excitation amplitude at fMin
             Aexc1:      Excitation amplitude at fMax
             Ts:         Sampling time in sec
-
             Default values are as follows:
             int NperMin  = 3;
             int NmeasMin = (int)ceil(1.0f/Ts);
             int Nstart   = (int)ceil(3.0f/Ts);
             int Nsweep   = (int)ceil(0.0f/Ts);
-
     Instantiate option 1: ("Jedi or Sith Lord", for logarithmic equaly spaced frequency points)
-
         GPA(float fMin, float fMax, int NfexcDes, int NperMin, int NmeasMin, float Ts, float Aexc0, float Aexc1, int Nstart, int Nsweep)
-
             fMin:       Minimal desired frequency that should be measured in Hz
             fMax:       Maximal desired frequency that should be measured in Hz
             NfexcDes:   Number of logarithmic equaly spaced frequency points
@@ -41,33 +33,21 @@
             Aexc1:      Excitation amplitude at fMax
             Nstart:     Minimal number of samples to sweep to the first frequency point (can be equal 0)
             Nsweep:     Minimal number of samples to sweep from freq. point to freq. point (can be equal 0)
-
-
     Instantiate option 2: (for a second, refined frequency grid measurement)
-
         GPA(float f0, float f1, float *fexcDes, int NfexcDes, int NperMin, int NmeasMin, float Ts, float Aexc0, float Aexc1, int Nstart, int Nsweep)
-
             f0:         Frequency point for the calculation of Aexc0 in Hz (should be chosen like in the first measurement)
             f1:         Frequency point for the calculation of Aexc1 in Hz (should be chosen like in the first measurement)
             *fexcDes:   Sorted frequency point array in Hz
             NfexcDes:   Length of fexcDes
-
             For the other parameters see above.
-
     Instantiate option 3: (for an arbitary but sorted frequency grid measurement)
-
         GPA(float *fexcDes, int NfexcDes, int NperMin, int NmeasMin, float Ts, float Aexc0, float Aexc1, int Nstart, int Nsweep)
-
             *fexcDes:   Sorted frequency point array in Hz
             Aexc0:      Excitation amplitude at fexcDes[0]
             Aexc1:      Excitation amplitude at fexcDes[NfexcDes-1]
             NfexcDes:   Length of fexcDes
-
             For the other parameters see above.
-
-
     Block diagram:
-
                 w (const.)    exc(2)                C: controller
                 |              |                    P: plant
                 v   e          v
@@ -76,60 +56,42 @@
                 |                   --> inp (u)  |  exc (R): excitation signal
                 |                                |  inp (U): input plant
                  --------------------------------   out (Y): output plant
-
-
     Pseudo code for an open loop measurement:
-
         - Measuring the plant P = Gyu = Gyr:
-
             u = w + exc;
             ... write output u here! it follows exc(k+1) ...
             exc = Wobble(exc, y);
-
             Closed loop FRF calculus with a stabilizing controller C:
                 S  = 1/(1 + C*P);  % ( exc1 -> e ,   1/(1 + C*P) ) sensitivity, contr. error rejection, robustness (1/max|S|)
                 T  = 1 - S;        % ( w -> y    , C*P/(1 + C*P) ) compl. sensitivity, tracking performance
                 CS = C*S;          % ( exc1 -> u ,   C/(1 + C*P) ) control effort, disturbance plant output on plant input
                 PS = P*S;          % ( exc2 -> y ,   P/(1 + C*P) ) compliance, disturbance plant input on plant output
-
-
     Pseudo code for a closed loop measurement with stabilizing controller C:
-
         Excitation at excitation input (1):
-
         - Measuring the plant P = Gyu and the closed loop tf T = PC/(1 + PC) = Gyr:
-
             u = C(w - y + exc);
             ... write output u here! it follows exc(k+1) ...
             exc = Wobble(u, y);
-
             Closed loop FRF calculus:
                 S  = 1 - T;
                 PS = P*S;
                 CS = T/P;
                 C  = C/S;
-
         Excitation at excitation input (2):
-
         - Measuring the plant P = Gyu and the closed loop tf PS = P/(1 + PC) = Gyr:
-
             u = C(w - y) + exc;
             ... write output u here! it follows exc(k+1) ...
             exc = Wobble(u, y);
-
             Closed loop FRF calculus:
                 S  = PS/P;
                 T  = 1 - S;
                 CS = T/P;
                 C  = C/S;
-
-
     Usage:
         exc(k+1) = myGPA(inp(k), out(k)) does update the internal states of the
         gpa at the timestep k and returns the excitation signal for the timestep
         k+1. The FRF data are plotted to a terminal (Putty) over a serial
         connection and look as follows:
-
 --------------------------------------------------------------------------------
   fexc[Hz]    |Gyu|    deg(Gyu)  |Gyr|    deg(Gyr)   |U|       |Y|       |R|
 --------------------------------------------------------------------------------
@@ -137,20 +99,15 @@
     .           .         .        .         .        .         .         .
     .           .         .        .         .        .         .         .
     .           .         .        .         .        .         .         .
-
     In Matlab you can use the editor as follows:
         data = [... insert measurement data here ...];
         gyu = frd(data(:,2).*exp(1i*data(:,3)*pi/180), data(:,1), Ts, 'Units', 'Hz');
         gyr = frd(data(:,4).*exp(1i*data(:,5)*pi/180), data(:,1), Ts, 'Units', 'Hz');
-
     If you're evaluating more than one measurement which contain equal frequency points use:
         data = [data1; data2];
         [~, ind] = unique(data(:,1), 'stable');
         data = data(ind,:);
-
-
     Autor and Copyrigth: 2018 / 2019 / 2020 / M.E. Peter
-
 */
 
 #include "GPA.h"
@@ -251,6 +208,7 @@ void GPA::setParameters(float fMin, float fMax, int NfexcDes, int NperMin, int N
     initializeConstants(Ts);
     assignFilterStorage();
     reset();
+    start_now = false;
 
 }
 
@@ -262,7 +220,7 @@ void GPA::reset()
     fexc = 0.0;
     fexcPast = 0.0f;
     dfexcj = 0.0f;
-    i = 1; // iterating through desired frequency points
+    iN = 1; // iterating through desired frequency points
     j = 1; // iterating through measurement points w.r.t. reachable frequency
     scaleG = 0.0;
     cr = 0.0;
@@ -301,10 +259,10 @@ float GPA::update(float inp, float out)
     // a new frequency point has been reached
     if(j == 1) {
         // user info
-        if(i == 1 && doPrint) {
-            printLine();
+        if(iN == 1 && doPrint) {
+            //printLine();
             //printf("  fexc[Hz]    |Gyu|    deg(Gyu)  |Gyr|    deg(Gyr)   |U|       |Y|       |R|\r\n");
-            printLine();
+            //printLine();
             start_now = true;
             //uart_com.send_char_data(250,2,0);
         }
@@ -312,20 +270,20 @@ float GPA::update(float inp, float out)
         // get a new unique frequency point
         while(fexc == fexcPast) {
             // measurement finished
-            if(i > NfexcDes) {
+            if(iN > NfexcDes) {
                 gpaData.MeasPointFinished = false;
                 gpaData.MeasFinished = true;
                 meas_is_finished = true;
                 return 0.0f;
             }
-            calcGPAmeasPara(fexcDes[i - 1]);
+            calcGPAmeasPara(fexcDes[iN - 1]);
             // secure fexc is not higher or equal to nyquist frequency
             if(fexc >= fnyq) {
                 fexc = fexcPast;
             }
             // no frequency found
             if(fexc == fexcPast) {
-                i += 1;
+                iN += 1;
             } else {
                 Aexc = aAexcDes/fexc + bAexcDes;
                 pi2Tsfexc = pi2Ts*fexc;
@@ -391,7 +349,7 @@ float GPA::update(float inp, float out)
             //printf("%11.4e %9.3e %8.3f %9.3e %8.3f %9.3e %9.3e %9.3e\r\n", gpaData.fexc, gpaData.absGyu, gpaData.angGyu, gpaData.absGyr, gpaData.angGyr, gpaData.Umag, gpaData.Ymag, gpaData.Rmag);
             new_data_available = true;
         }
-        i += 1;
+        iN += 1;
         j = 1;
     } else {
         j += 1;
@@ -485,17 +443,17 @@ void GPA::printLongLine()
 
 void GPA::printGPAfexcDes()
 {
-    printLine();
+   // printLine();
     for(int i = 0; i < NfexcDes; i++) {
-        printf("%9.4f\r\n", fexcDes[i]);
+        ;//printf("%9.4f\r\n", fexcDes[i]);
     }
 }
 
 void GPA::printGPAmeasPara()
 {
-    printLine();
-    printf(" fexcDes[Hz]   fexc[Hz]     Aexc      Nmeas   Nper  Nsweep_i\r\n");
-    printLine();
+    //printLine();
+    //printf(" fexcDes[Hz]   fexc[Hz]     Aexc      Nmeas   Nper  Nsweep_i\r\n");
+    //printLine();
     for(int i = 0; i < NfexcDes; i++) {
         calcGPAmeasPara(fexcDes[i]);
         if(fexc == fexcPast || fexc >= fnyq) {
@@ -511,30 +469,30 @@ void GPA::printGPAmeasPara()
         }
         NmeasTotal += Nmeas;
         NmeasTotal += Nsweep_i;
-        printf("%11.4e %12.4e %10.3e %7i %6i %7i\r\n", fexcDes[i], (float)fexc, Aexc, Nmeas, Nper, Nsweep_i);
+        //printf("%11.4e %12.4e %10.3e %7i %6i %7i\r\n", fexcDes[i], (float)fexc, Aexc, Nmeas, Nper, Nsweep_i);
 //        wait(0.01);
         Nsweep_i = Nsweep;
     }
-    printGPAmeasTime();
+    //printGPAmeasTime();
     reset();
 }
 
 void GPA::printGPAmeasTime()
 {
-    printLine();
-    printf(" Number of data points :  %11i\r\n", NmeasTotal);
-    printf(" Measurment time in sec: %12.2f\r\n", (float)NmeasTotal*Ts);
+    //printLine();
+    //printf(" Number of data points :  %11i\r\n", NmeasTotal);
+    //printf(" Measurment time in sec: %12.2f\r\n", (float)NmeasTotal*Ts);
 }
 
 void GPA::printNfexcDes()
 {
-    printLine();
-    printf("  Number of frequancy points:  %3i\r\n", NfexcDes);
+    //printLine();
+    //printf("  Number of frequancy points:  %3i\r\n", NfexcDes);
 }
 
 void GPA::printLine()
 {
-    printf("--------------------------------------------------------------------------------\r\n");
+    //printf("--------------------------------------------------------------------------------\r\n");
 }
 
 void GPA::getGPAdata(float *val)

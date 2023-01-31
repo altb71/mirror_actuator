@@ -11,19 +11,20 @@ ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
-    v_cntrl[0].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);//(0.01,1,0,1,Ts,-0.8,0.8);
+    v_cntrl[0].setup(2, 200, 0, 1,Ts,-3,3);//(0.01,1,0,1,Ts,-0.8,0.8);
     v_cntrl[1].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);
     //v_cntrl[1].setup(0.01,1,0,1,Ts,-0.8,0.8);
-    Kv[0] = 120;
-    Kv[1] = 120;  
+    Kv[0] = 60;
+    Kv[1] = 60;  
     ti.reset();
     ti.start();
     i_des[0] = i_des[1] = 0;
+    w_des[0] = w_des[1] = 0;
     //controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
-    //controller_type = VEL_CNTRL;
+    controller_type = POS_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
-    //controller_type = POS_CNTRL;
-    controller_type = CIRCLE;
+ //controller_type = ONLY_POS_CNTRL;
+    //controller_type = CIRCLE;
     }
 
 // decontructor for controller loop
@@ -39,22 +40,22 @@ void ControllerLoop::loop(void){
     float om = 2*3.1415 *10;
     float v_ff[2];
     float Amp = 0.2;
-    uint8_t mot_num = 1;
+    uint8_t mot_num = 0;
+    i_des[0] = i_des[1] = 0;
     while(1)
         {
         ThisThread::flags_wait_any(threadFlag);
         // THE LOOP ------------------------------------------------------------
         m_sa->read_encoders_calc_speed();       // first read encoders and calculate speed
-        if(!m_sa->motors_are_referenced())
-            reference_loop();
-        else
+       // if(!m_sa->motors_are_referenced())
+       //     reference_loop();
+        //else
             {
             float tim = ti.read();
-            i_des[0] = i_des[1] = 0;
             switch(controller_type)
                 {
                 case IDENT_VEL_PLANT:
-                    i_des[mot_num] = myGPA.update(i_des[mot_num], m_data->sens_Vphi[mot_num]);
+                    i_des[0] = myGPA.update(i_des[0], m_data->sens_Vphi[0]);
                     break;
                 case VEL_CNTRL:
                     v_des = myDataLogger.get_set_value(tim);
@@ -94,10 +95,10 @@ void ControllerLoop::loop(void){
                 m_sa->enable_motors(true);      // enable motors
             }
             // Motor 1 or 2
-            m_sa->write_current(0,i_des[0]);
-            m_sa->write_current(1,i_des[1]);
+            m_sa->write_current(0,i_des[0]-.25f);
+            m_sa->write_current(1,0);
             // enabling all
-            m_sa->set_laser_on_off(m_data->laser_on);
+            
             
         }// endof the main loop
 }

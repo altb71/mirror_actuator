@@ -16,6 +16,7 @@
 #define VEL_CNTRL   20
 #define IDENT_POS_PLANT 30
 #define POS_CNTRL   40
+#define ONLY_POS_CNTRL   41
 #define CIRCLE   50
 
 
@@ -42,6 +43,7 @@ private:
     Timer ti;
     float Ts;
     float i_des[2];
+    float w_des[2];
     void sendSignal();
     bool is_initialized;
     void find_index(void);
