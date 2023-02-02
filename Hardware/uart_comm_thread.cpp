@@ -286,20 +286,22 @@ bool uart_comm_thread::analyse_received_data(void){
                     break;
                 }
             break;      // case 210
-		/*case 230:				// set internal/external control
+		case 250:				// set internal/external control
 			if(N != 1)
 				return false;
 			switch(msg_id2)
 				{
-				case 1:
-					if(buffer[7] == 1)
-						m_mk->external_control = true;
-					else 
-						m_mk->external_control = false;
+				case 101:
+					if(r_buffer[7] == 1)
+						myGPA.gpa_running = true;
+					else {
+                        myGPA.gpa_running = false;
+                        myGPA.rewind();
+                    }
 					return true;
 					break;
 				}
-			break;*/
+			break;
 		}
 	return false;	
 }

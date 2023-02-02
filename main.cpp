@@ -55,7 +55,7 @@ int main()
     while(1)
     {
         ThisThread::sleep_for(500ms);
-     //printf("%f %f\r\n",data.sens_Vphi[0],data.sens_Vphi[1]); 
+     printf("%f %f\r\n",data.sens_Vphi[0],data.sens_Vphi[1]); 
     }  
 }   // END OF main
 

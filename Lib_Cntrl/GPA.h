@@ -38,6 +38,7 @@ public:
 
     void    setParameters(float fMin, float fMax, int NfexcDes, int NperMin, int NmeasMin, float Ts, float Aexc0, float Aexc1, int Nstart, int Nsweep, bool doPrint);
     void    reset();
+    void rewind();
     float   update(float inp, float out);
 
     void    printGPAfexcDes();
@@ -51,6 +52,7 @@ public:
     bool    new_data_available;
     bool    meas_is_finished;
     bool    start_now;
+    bool    gpa_running;
 
 private:
 

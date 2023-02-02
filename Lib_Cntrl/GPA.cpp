@@ -132,6 +132,7 @@ GPA::GPA(float fMin, float fMax, int NfexcDes, int NperMin, int NmeasMin, float 
     new_data_available = false;
     meas_is_finished = false;
     start_now = false;
+    gpa_running = false;
     setParameters(fMin, fMax, NfexcDes, NperMin, NmeasMin, Ts, Aexc0, Aexc1, Nstart, Nsweep, doPrint);
 }
 
@@ -249,6 +250,11 @@ void GPA::reset()
     gpaData.ind = -1;
 
 }
+void GPA::rewind(void)
+{
+    iN = 1; // iterating through desired frequency points
+    j = 1;
+}
 
 // -----------------------------------------------------------------------------
 //      update (operator)
@@ -257,6 +263,10 @@ void GPA::reset()
 float GPA::update(float inp, float out)
 {
     // a new frequency point has been reached
+    if(!gpa_running)
+        {
+            return 0;
+        }
     if(j == 1) {
         // user info
         if(iN == 1 && doPrint) {
