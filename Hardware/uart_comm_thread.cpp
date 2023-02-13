@@ -96,7 +96,7 @@ void uart_comm_thread::run(void)
     // returnvalue
     bool retVal = false;
 	uint8_t checksum,k;
-	uint16_t send_state = 210;
+	uint16_t send_state = 250;
     uint8_t k1=0;
     char buf[2];
 	while(true)
@@ -159,7 +159,7 @@ void uart_comm_thread::run(void)
 					float dum[8];
 					myGPA.getGPAdata(dum);
 					send(250,1,32,(char *)&(dum[0]));	// send new values (8 floats)
-                    send_state = 210;
+                    send_state = 250;
                     }
 				else if(myGPA.start_now)
 					{
@@ -177,13 +177,13 @@ void uart_comm_thread::run(void)
                     send_state = 252;
 					}
                 else{
-                    send_state = 210;
+                    //send_state = 210;
                     }
-				  send_state = 210;  
+				  //send_state = 210;  
 				break;			
             case 251:
                 send_text((char *)"GPA started");
-                send_state = 210;
+                send_state = 250;
                 break;
             case 252:
                 send_text((char *)"GPA finished");

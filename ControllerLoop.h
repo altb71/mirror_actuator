@@ -27,30 +27,35 @@
 class ControllerLoop
 {
 public:
-    ControllerLoop(Data_Xchange *,sensors_actuators *,Mirror_Kinematic *,float Ts);
-    virtual     ~ControllerLoop();
-    void start_loop(void);
-    void init_controllers(void);
-    void reset_pids(void);
+            ControllerLoop(Data_Xchange *data, sensors_actuators *sa, Mirror_Kinematic *mk, float Ts);
+    virtual ~ControllerLoop();
+    void    start_loop(void);
+    void    init_controllers(void);
+    void    reset_pids(void);
 
 
 private:
-    void loop(void);
-    void reference_loop(void);
+    void    loop(void);
+    void    reference_loop(void);
+    void    sendSignal();
+    void    find_index(void);
+    float   pos_cntrl(float);
+
     Thread thread;
     Ticker ticker;
     ThreadFlag threadFlag;
     Timer ti;
     float Ts;
-    float i_des[2];
-    float w_des[2];
-    void sendSignal();
+    
+    float i_des[2] = {0};
+    float w_des[2] = {0};
+    
     bool is_initialized;
-    void find_index(void);
+
     PID_Cntrl v_cntrl[2];
     float Kv[2];
-    float pos_cntrl(float);
     uint8_t controller_type;
+    
     Data_Xchange *m_data;
     sensors_actuators *m_sa;
     Mirror_Kinematic *m_mk;

@@ -5,25 +5,31 @@ extern GPA myGPA;
 extern DataLogger myDataLogger;
 
 // contructor for controller loop
-ControllerLoop::ControllerLoop(Data_Xchange *data,sensors_actuators *sa, Mirror_Kinematic *mk, float Ts) : thread(osPriorityHigh,4096)
+ControllerLoop::ControllerLoop(Data_Xchange *data, sensors_actuators *sa, Mirror_Kinematic *mk, float Ts) : thread(osPriorityHigh,4096)
 {
     this->Ts = Ts;
     this->m_data = data;
     this->m_sa = sa;
     this->m_mk = mk;
-    v_cntrl[0].setup(2, 200, 0, 1,Ts,-3,3);//(0.01,1,0,1,Ts,-0.8,0.8);
-    v_cntrl[1].setup(0.018, 2.000, 3.64091e-05, 0.0005,Ts,-.8,.8);
+    
+    // Setup velocity controller
+    v_cntrl[0].setup(2, 200, 0, 1, Ts, -3, 3);//(0.01,1,0,1,Ts,-0.8,0.8);
+    v_cntrl[1].setup(5, 150, 0, 1, Ts, -3, 3);
     //v_cntrl[1].setup(0.01,1,0,1,Ts,-0.8,0.8);
+    
+    // Setup position controller
     Kv[0] = 60;
     Kv[1] = 60;  
+    
+    // Start timer
     ti.reset();
     ti.start();
-    i_des[0] = i_des[1] = 0;
-    w_des[0] = w_des[1] = 0;
-    //controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
-    controller_type = POS_CNTRL;
+    
+    controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
+    //controller_type = POS_CNTRL;
+    //controller_type = VEL_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
- //controller_type = ONLY_POS_CNTRL;
+    //controller_type = ONLY_POS_CNTRL;
     //controller_type = CIRCLE;
     }
 
@@ -35,27 +41,32 @@ ControllerLoop::~ControllerLoop() {}
 void ControllerLoop::loop(void){
     float v_des;
     uint8_t k = 0;
-    float phi_des[2],dphi,error;
-    float xy_des[2]; 
-    float om = 2*3.1415 *10;
-    float v_ff[2];
+    float phi_des[2] = {0};
+    float dphi,error = {0};
+    float xy_des[2] = {0};
+
+    float om = 2.0f*3.1415f*10.0f;
+    float v_ff[2] = {0};
+
     float Amp = 0.2;
     uint8_t mot_num = 0;
-    i_des[0] = i_des[1] = 0;
+    i_des[0] = i_des[1] = 0.0f;
+    
     while(1)
         {
         ThisThread::flags_wait_any(threadFlag);
         // THE LOOP ------------------------------------------------------------
-        m_sa->read_encoders_calc_speed();       // first read encoders and calculate speed
-       // if(!m_sa->motors_are_referenced())
-       //     reference_loop();
-        //else
+        
+        // first read encoders and calculate speed
+        m_sa->read_encoders_calc_speed();
             {
             float tim = ti.read();
             switch(controller_type)
                 {
                 case IDENT_VEL_PLANT:
-                    i_des[0] = myGPA.update(i_des[0], m_data->sens_Vphi[0]);
+                    w_des[mot_num] = 10.0f + myGPA.update(w_des[mot_num], m_data->sens_Vphi[mot_num]);
+                    i_des[mot_num] = v_cntrl[mot_num].update(w_des[mot_num]-m_data->sens_Vphi[mot_num]);
+                    //i_des[mot_num] = i_des[mot_num] + myGPA.update(i_des[mot_num], m_data->sens_Vphi[mot_num]);
                     break;
                 case VEL_CNTRL:
                     v_des = myDataLogger.get_set_value(tim);
@@ -67,6 +78,7 @@ void ControllerLoop::loop(void){
                     v_des = myGPA.update(v_des, m_data->sens_phi[mot_num]);;
                     error = v_des - m_data->sens_Vphi[mot_num];
                     i_des[mot_num] = v_cntrl[mot_num](error);
+                    if (myGPA.meas_is_finished) i_des[mot_num] = 0.0f;
                     break;
                 case POS_CNTRL:
                     phi_des[mot_num] = myDataLogger.get_set_value(tim);
@@ -95,11 +107,9 @@ void ControllerLoop::loop(void){
                 m_sa->enable_motors(true);      // enable motors
             }
             // Motor 1 or 2
-            m_sa->write_current(0,i_des[0]-.25f);
-            m_sa->write_current(1,0);
-            // enabling all
-            
-            
+            m_sa->write_current(0,i_des[0]);
+            m_sa->write_current(1,i_des[1]);
+            // enabling all           
         }// endof the main loop
 }
 
@@ -112,38 +122,41 @@ void ControllerLoop::reference_loop(void){
     i_des[0] = v_cntrl[0](error);
     error = 5 - m_data->sens_Vphi[1];
     i_des[1] = v_cntrl[1](error);
-    m_sa->force_enable_motors(true);
+    return;
 }
 // ----------------------------------------------------------------------------
 void ControllerLoop::sendSignal() {
     thread.flags_set(threadFlag);
+    return;
 }
 void ControllerLoop::start_loop(void)
 {
+    m_sa->enable_motors(true);
     thread.start(callback(this, &ControllerLoop::loop));
     ticker.attach(callback(this, &ControllerLoop::sendSignal), Ts);
+    return;
 }
 float ControllerLoop::pos_cntrl(float d_phi)
-{
-   
+{   
    // write position controller here
    return 0.0;
-    }
+}
 
 void ControllerLoop::init_controllers(void)
 {
     // set values for your velocity and position controller here!
-    
-    
+    return;
 }
+
 // find_index: move axis slowly to detect the zero-pulse
 void ControllerLoop::find_index(void)
 {
     // use a simple P-controller to get system spinning, add a constant current to overcome friction
-    
+    return;
 }
     
 void ControllerLoop::reset_pids(void)
 {
     // reset all cntrls.
+    return;
 }

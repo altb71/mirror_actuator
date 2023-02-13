@@ -37,8 +37,8 @@ public:
 
     // public vars
     // public vars
-	char 	r_buffer[PACK_SIZE + 20];     // RX buffer
-    char 	s_buffer[PACK_SIZE + 20];     // RX buffer
+	char r_buffer[PACK_SIZE + 20];     // RX buffer
+    char s_buffer[PACK_SIZE + 20];     // RX buffer
 	void send_text(const char *);
 	
 private:
@@ -53,10 +53,10 @@ private:
     char csm;
     
 // -------------------
-//	uint8_t buffer[BUF_LEN];     // RX buffer
+//	uint8_t buffer[BUF_LEN];    // RX buffer
 //	uint8_t buffCnt;            // max 255
 	uint8_t state;              // statemachine state variable
-	BufferedSerial* uart;   // pointer to uart for communication with device
+	BufferedSerial* uart;       // pointer to uart for communication with device
     ThreadFlag              threadFlag;
     Thread                  thread;
     Ticker                  ticker;
