@@ -8,7 +8,7 @@
 /*sensors_actuators::sensors_actuators(Data_Xchange *data,float Ts) : di1(.0005,Ts),di2(.0005,Ts),big_button(PC_3),counter1(PA_6, PC_7),
                             indexpulse1(PA_8),index1(counter1,indexpulse1), counter2(PB_6, PB_7),indexpulse2(PB_4),index2(counter2,indexpulse2),
                             i_enable(PC_4),laser_on(PB_0), i_des1(PA_5),i_des2(PA_4),uw1(4000,16),uw2(4000,16)*/
-sensors_actuators::sensors_actuators(Data_Xchange *data, float Ts) : di1(.002,Ts), di2(.002,Ts), big_button(USER_BUTTON1), counter2(ENCODER2_CHA, ENCODER2_CHB),
+sensors_actuators::sensors_actuators(Data_Xchange *data, float Ts) : di1(.002,Ts), di2(.003,Ts), big_button(USER_BUTTON1), counter2(ENCODER2_CHA, ENCODER2_CHB),
                             indexpulse1(PA_8), index1(counter1, indexpulse1), counter1(ENCODER1_CHA, ENCODER1_CHB), indexpulse2(PB_4), index2(counter2, indexpulse2),
                             i_enable1(ESCON1_ENABLE), i_enable2(ESCON2_ENABLE), laser_on(PB_0), i_des1(ESCON1_AIN), i_des2(ESCON2_AIN), uw1(4*6400, 16), uw2(4*4096, 16)
 {

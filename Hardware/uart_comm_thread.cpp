@@ -96,7 +96,7 @@ void uart_comm_thread::run(void)
     // returnvalue
     bool retVal = false;
 	uint8_t checksum,k;
-	uint16_t send_state = 250;
+	uint16_t send_state = 210;
     uint8_t k1=0;
     char buf[2];
 	while(true)
@@ -151,7 +151,7 @@ void uart_comm_thread::run(void)
                 break;
             case 212:
                 send_text((char *)"log data sended.");
-                send_state = 250;
+                send_state = 210;
                 break;
             case 250:		// send GPA values
 				if(myGPA.new_data_available)

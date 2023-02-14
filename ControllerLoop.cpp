@@ -13,20 +13,21 @@ ControllerLoop::ControllerLoop(Data_Xchange *data, sensors_actuators *sa, Mirror
     this->m_mk = mk;
     
     // Setup velocity controller
-    v_cntrl[0].setup(2, 200, 0, 1, Ts, -3, 3);//(0.01,1,0,1,Ts,-0.8,0.8);
-    v_cntrl[1].setup(5, 150, 0, 1, Ts, -3, 3);
+    v_cntrl[0].setup(2.55f, 200.0f, -0.0057f, 0.0023f, Ts, -3.0f, 3.0f);//(0.01,1,0,1,Ts,-0.8,0.8);
+    v_cntrl[1].setup(2.55f, 100.0f, -0.0104f, 0.004f, Ts, -3.0f, 3.0f);
+    //v_cntrl[1].setup(1.0f, 0.0f, 0.0f, 0.0f, Ts, -6, 6);
     //v_cntrl[1].setup(0.01,1,0,1,Ts,-0.8,0.8);
     
     // Setup position controller
     Kv[0] = 60;
-    Kv[1] = 60;  
+    Kv[1] = 30;  
     
     // Start timer
     ti.reset();
     ti.start();
     
-    controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
-    //controller_type = POS_CNTRL;
+    //controller_type = IDENT_VEL_PLANT; // use 1st version of GPA constructor in main.cpp (line ~23)
+    controller_type = POS_CNTRL;
     //controller_type = VEL_CNTRL;
     //controller_type = IDENT_POS_PLANT;   // use 2nd version of GPA constructor in main.cpp (line ~24)
     //controller_type = ONLY_POS_CNTRL;
@@ -45,7 +46,7 @@ void ControllerLoop::loop(void){
     float dphi,error = {0};
     float xy_des[2] = {0};
 
-    float om = 2.0f*3.1415f*10.0f;
+    float om = 2.0f*3.1415f*1.0f;
     float v_ff[2] = {0};
 
     float Amp = 0.2;
@@ -64,9 +65,8 @@ void ControllerLoop::loop(void){
             switch(controller_type)
                 {
                 case IDENT_VEL_PLANT:
-                    w_des[mot_num] = 10.0f + myGPA.update(w_des[mot_num], m_data->sens_Vphi[mot_num]);
-                    i_des[mot_num] = v_cntrl[mot_num].update(w_des[mot_num]-m_data->sens_Vphi[mot_num]);
-                    //i_des[mot_num] = i_des[mot_num] + myGPA.update(i_des[mot_num], m_data->sens_Vphi[mot_num]);
+                    i_des[mot_num] = v_cntrl[mot_num].update(15.0f-m_data->sens_Vphi[mot_num]) + myGPA.update(i_des[mot_num], m_data->sens_Vphi[mot_num]);
+                    i_des[0] = v_cntrl[0].update(0.0f-m_data->sens_Vphi[0]);
                     break;
                 case VEL_CNTRL:
                     v_des = myDataLogger.get_set_value(tim);
@@ -94,12 +94,12 @@ void ControllerLoop::loop(void){
                     v_ff[0] = -Amp * om * sin(om*tim);
                     v_ff[1] = Amp * om * cos(om*tim);
                     for(uint8_t k=0;k<2;k++)
-                        {
+                    {
                         dphi = phi_des[k] - m_data->sens_phi[k];
                         v_des = Kv[k] * dphi;
-                        error = v_des + 0*v_ff[k] - m_data->sens_Vphi[k];
+                        error = v_des + 1*v_ff[k] - m_data->sens_Vphi[k];
                         i_des[k] = v_cntrl[k](error);
-                        }
+                    }
                     break;
                 default:
                     break;
