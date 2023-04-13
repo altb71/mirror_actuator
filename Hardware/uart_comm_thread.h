@@ -2,7 +2,7 @@
 #define UART_COMM_THREAD_H_
 
 #include "GPA.h"
-#include "DataLogger.h"
+#include "Datalogger.h"
 #include "mbed.h"
 #include "ThreadFlag.h"
 #include "data_structs.h"
@@ -21,6 +21,7 @@ using namespace std;
 #define WAIT    1
 #define RECEIVE 2
 #define DONE    3
+#define PACK_SIZE 200
 
 #define LEN_OF_EXP_TYPE2 1   // length in bytes of expected Type
 #define NUM_OF_VALUE    7   // number of expected values

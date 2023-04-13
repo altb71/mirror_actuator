@@ -31,6 +31,10 @@ void sensors_actuators::enable_motors(bool enable)
 {
     i_enable = big_button && enable;    
 }
+void sensors_actuators::force_enable_motors(bool enable)
+{
+    i_enable = enable;    
+}
 
 void sensors_actuators::write_current(uint8_t mot_nb, float i_des)
 {

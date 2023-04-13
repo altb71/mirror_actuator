@@ -46,11 +46,12 @@ public:
     void    printNfexcDes();
     void    printLine();
     void    printLongLine();
-
+    float   get_Ts();
     void    getGPAdata(float *);
     bool    new_data_available;
     bool    meas_is_finished;
     bool    start_now;
+    int     status;
 
 private:
 

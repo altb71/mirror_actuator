@@ -223,7 +223,8 @@ GPA::GPA(float fMin, float fMax, int NfexcDes, int NperMin, int NmeasMin, float 
 // -----------------------------------------------------------------------------
 void GPA::setup(float fMin, float fMax, int NfexcDes, float Aexc0, float Aexc1, float Ts)
 {
-    doPrint = true;
+    doPrint = false;
+    this->Ts = Ts;
     int NperMin = 3;
     int NmeasMin = (int)ceil(1.0f/Ts);
     int Nstart = (int)ceil(3.0f/Ts);
@@ -231,6 +232,7 @@ void GPA::setup(float fMin, float fMax, int NfexcDes, float Aexc0, float Aexc1, 
     new_data_available = false;
     meas_is_finished = false;
     start_now = false;
+    status = 0;
 
     setParameters(fMin, fMax, NfexcDes, NperMin, NmeasMin, Ts, Aexc0, Aexc1, Nstart, Nsweep, doPrint);
 }
@@ -238,6 +240,10 @@ void GPA::setup(float fMin, float fMax, int NfexcDes, float Aexc0, float Aexc1, 
 // ------------------- deconstructor ---------------------
 GPA::~GPA() {}
 
+float GPA::get_Ts()
+{
+    return this->Ts;
+}
 void GPA::setParameters(float fMin, float fMax, int NfexcDes, int NperMin, int NmeasMin, float Ts, float Aexc0, float Aexc1, int Nstart, int Nsweep, bool doPrint)
 {
     this->doPrint = doPrint;
@@ -289,6 +295,7 @@ void GPA::reset()
     gpaData.MeasPointFinished = false;
     gpaData.MeasFinished = false;
     gpaData.ind = -1;
+    status = 0;
 
 }
 
@@ -299,14 +306,12 @@ void GPA::reset()
 float GPA::update(float inp, float out)
 {
     // a new frequency point has been reached
+    if(status != 2)
+        return 0;
     if(j == 1) {
         // user info
-        if(i == 1 && doPrint) {
-            printLine();
-            //printf("  fexc[Hz]    |Gyu|    deg(Gyu)  |Gyr|    deg(Gyr)   |U|       |Y|       |R|\r\n");
-            printLine();
+        if(i == 1 ) {
             start_now = true;
-            //uart_com.send_char_data(250,2,0);
         }
         
         // get a new unique frequency point
@@ -316,6 +321,7 @@ float GPA::update(float inp, float out)
                 gpaData.MeasPointFinished = false;
                 gpaData.MeasFinished = true;
                 meas_is_finished = true;
+                status = 0;
                 return 0.0f;
             }
             calcGPAmeasPara(fexcDes[i - 1]);
@@ -387,9 +393,9 @@ float GPA::update(float inp, float out)
         gpaData.MeasPointFinished = true;
         gpaData.ind++;
         // user info
+        new_data_available = true;
         if(doPrint) {
             //printf("%11.4e %9.3e %8.3f %9.3e %8.3f %9.3e %9.3e %9.3e\r\n", gpaData.fexc, gpaData.absGyu, gpaData.angGyu, gpaData.absGyr, gpaData.angGyr, gpaData.Umag, gpaData.Ymag, gpaData.Rmag);
-            new_data_available = true;
         }
         i += 1;
         j = 1;

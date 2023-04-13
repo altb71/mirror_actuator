@@ -1,15 +1,15 @@
 #include "mbed.h"
 #include <stdint.h>
 #include "math.h" 
-#include "path_1d.h"
 #include "GPA.h"
 #include "DataLogger.h"
-#include "ControllerLoop.h"
+#include "Controller_Loop.h"
 #include "Mirror_Kinematic.h"
 #include "data_structs.h"
 #include "FastPWM.h"
 #include "sensors_actuators.h"
 #include "uart_comm_thread.h"
+#include "state_machine.h"
  
 static BufferedSerial serial_port(USBTX, USBRX);
 
@@ -20,9 +20,8 @@ void reset_data(Data_Xchange *);
 
 //----------------------------------------- global variables (uhh!) ---------------------------
 //init values:    (f0,   f1, nbPts, A0, A1, Ts)
-GPA          myGPA(5 , 1000,    30,.25,.25, Ts);
-
-DataLogger myDataLogger(1);
+GPA          myGPA(5 , 1000,    30,1,1, Ts);
+DataLogger   myDataLogger(1);
 
 //******************************************************************************
 //---------- main loop -------------
@@ -30,13 +29,13 @@ DataLogger myDataLogger(1);
 
 int main()
 {
-
     // --------- Mirror kinematik, define values, trafos etc there
     Data_Xchange data;              // data exchange structure, see data_structs.h in the "Lib_Misc" library
     Mirror_Kinematic mk(&data);     // Mirror_Kinematics class, the geom. parameters, trafos etc. are done
     uart_comm_thread uart_com(&data, &mk,&serial_port,.05f);   // this is the communication thread
     sensors_actuators hardware(&data, Ts);         // in this class all the physical ios are handled
-    ControllerLoop loop(&data,&hardware,&mk,Ts);       // this is forthe main controller loop
+    Controller_Loop loop(&data,&hardware,&mk,Ts);       // this is for the main controller loop
+    state_machine sm(&hardware,&loop,.01);
     reset_data(&data);
     ThisThread::sleep_for(200);
 // ----------------------------------
@@ -50,7 +49,8 @@ int main()
     uart_com.start_uart();
     loop.start_loop();
     ThisThread::sleep_for(200);
-    printf("StartLoop\r\n");
+    sm.start_loop();
+    ThisThread::sleep_for(200);
     uart_com.send_text((char *)"Start Mirroractuator 2.0");
     while(1)
         ThisThread::sleep_for(200);

@@ -22,6 +22,7 @@ public:
     float get_phi(uint8_t);         // get angle of motor k
     float get_om(uint8_t);          // get speed of motor k
     void set_des_current(uint8_t);  // set desired current on actuator
+    void force_enable_motors(bool);
     void enable_motors(bool);       // enable/disable motors via DigitalOut, send a "true" and also press button
     void write_current(uint8_t,float);  // write current to motors (0,...) for motor 1, (1,...) for motor 2
     void set_laser_on_off(bool);    // set laser on or off

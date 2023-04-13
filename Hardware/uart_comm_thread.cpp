@@ -123,7 +123,7 @@ void uart_comm_thread::run(void)
 				break;	
 			case 1012:
 				send(101,34,2*4,(char *)&(m_data->est_xy[0]));		// send actual xy values 
-				send_state = 250;
+				send_state = 210;
 				break;	
 			case 125:		// number of iterations in the trafo
 				send(125,1,1,(char *)&m_data->num_it);		
@@ -132,16 +132,16 @@ void uart_comm_thread::run(void)
 			case 210:		// number of iterations in the trafo
 				if(myDataLogger.new_data_available)
                     {
-                        if(myDataLogger.packet*200<4*3*myDataLogger.N)
-                            send(210,1+myDataLogger.packet,200,(char *)&(myDataLogger.log_data[myDataLogger.packet*200]));
+                        if(myDataLogger.packet*PACK_SIZE<4*myDataLogger.N_col*myDataLogger.N_row)
+                            send(210,1+myDataLogger.packet,PACK_SIZE,(char *)&(myDataLogger.log_data[myDataLogger.packet*(PACK_SIZE/4)]));
                         else
                             {
-                            send(210,1+myDataLogger.packet,4*3*myDataLogger.N-myDataLogger.packet*200,(char *)&(myDataLogger.log_data[myDataLogger.packet*200]));
+                            send(210,1+myDataLogger.packet,4*myDataLogger.N_col*myDataLogger.N_row-myDataLogger.packet*PACK_SIZE,(char *)&(myDataLogger.log_data[myDataLogger.packet*PACK_SIZE/4]));
                             myDataLogger.log_status = 1;
                             myDataLogger.new_data_available = false;
                             send_state = 211;
                             }
-                        myDataLogger.packet++;
+                        ++myDataLogger.packet;
                     }
                 else
                     send_state = 250;
@@ -237,6 +237,9 @@ void uart_comm_thread::send(uint8_t id1, uint8_t id2, uint16_t N, char *m)
 bool uart_comm_thread::analyse_received_data(void){
 	char msg_id1 = buffer[3];
 	char msg_id2 = buffer[4];
+    char stri[20];
+    float f0,f1,A0,A1;
+    uint8_t Nmeas;
 	uint16_t N = 256 * buffer[6] + buffer[5];
 	switch(msg_id1)
 		{
@@ -294,12 +297,38 @@ bool uart_comm_thread::analyse_received_data(void){
             switch(msg_id2)
                 {
                 case 101:
-                    if(myDataLogger.log_status == 1)
+                if(myDataLogger.log_status == 1)
                         {
                         myDataLogger.reset_data();
                         myDataLogger.input_type = (uint8_t)buffer[7];
+                        myDataLogger.Amp = *(float *)&buffer[8];
+                        myDataLogger.omega = *(float *)&buffer[12];
+                        myDataLogger.offset = *(float *)&buffer[16];
+                        myDataLogger.downsamp = (uint8_t)buffer[20];
                         send_text((char *)"Started time measure");
                         myDataLogger.log_status = 2;
+                        }
+                    break;
+                }
+            break;      // case 210
+        case 250:
+            switch(msg_id2)
+                {
+                case 101:       // start GPA xternally
+                if(true)
+                        {
+                        myGPA.reset();
+                        f0 = *(float *)&buffer[7];
+                        f1 = *(float *)&buffer[11];
+                        A0 = *(float *)&buffer[15];
+                        A1 = *(float *)&buffer[19];
+                        Nmeas = (uint8_t)buffer[23];
+                        myGPA.setup(f0, f1, (int)Nmeas, A0, A1, myGPA.get_Ts());
+                        sprintf (stri, "Start GPA, N: %d",Nmeas);
+                        //send_text((char *)"Started GPA");
+                        send_text(stri);
+                        myGPA.status = 2;
+                        gpa_stop_sent = false;
                         }
                     break;
                 }
