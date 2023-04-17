@@ -31,10 +31,10 @@ void state_machine::loop(void){
                 if(ti.read()>3)
                     {
                     ti.reset();
-                    //m_loop->switch_to_GPA_ident();
-                    //CS = STATE_GPA;
-                    m_loop->switch_to_cntrl_vel();
-                    CS = CONTROL;
+                    m_loop->switch_to_GPA_ident();
+                    CS = STATE_GPA;
+                    //m_loop->switch_to_cntrl_vel();
+                    //CS = CONTROL;
                     }
                 break;
             case STATE_GPA:
