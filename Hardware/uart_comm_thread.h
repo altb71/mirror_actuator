@@ -2,7 +2,7 @@
 #define UART_COMM_THREAD_H_
 
 #include "GPA.h"
-#include "Datalogger.h"
+#include "DataLogger.h"
 #include "mbed.h"
 #include "ThreadFlag.h"
 #include "data_structs.h"
