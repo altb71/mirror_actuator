@@ -15,6 +15,7 @@ Controller_Loop::Controller_Loop(Data_Xchange *data,sensors_actuators *sa, Mirro
     ti.reset();
     ti.start();
     controller_state = CNTRL_IDLE;  // the local state machine
+    v_cntrl_1 = PID_Cntrl(0.02,4,0,0,Ts,-0.8,0.8);
     }
 // decontructor for controller loop
 Controller_Loop::~Controller_Loop() {}
@@ -41,16 +42,18 @@ void Controller_Loop::loop(void){
                 break;
             case GPA_IDENT_PLANT:
                 m_sa->enable_motors(true);      // enable motors, still read the bigButton to enable
-                i_des = myGPA.update(i_des,m_data->sens_Vphi[0]);
+/*Variante 1*/    // i_des = myGPA.update(i_des,m_data->sens_Vphi[0]);
+/*Variante 2*/     i_des = 0.02*(50+myGPA.update(i_des,m_data->sens_Vphi[0]) - m_data->sens_Vphi[0]);
+/*Variante 3*/    // i_des = 0.02*(50.0 - m_data->sens_Vphi[0]) + myGPA.update(i_des,m_data->sens_Vphi[0]);
+                
                 break;
             case CNTRL_VEL:
                 m_sa->enable_motors(true);      // enable motors
-                // v_des = myDataLogger.get_set_value(ti_loc);
-                // myDataLogger.write_to_log(ti_loc,data1, data2, data3);
+                v_des = myDataLogger.get_set_value(ti_loc);
+                i_des = v_cntrl_1(v_des - m_data->sens_Vphi[0]);
+                myDataLogger.write_to_log(ti_loc,v_des, m_data->sens_Vphi[0], i_des);
             break;
             // ------------------------ do the control first
-            // calculate desired currents here, you can do "anything" here, 
-            // data from sensors etc. are available via the m_data->... structure 
             default:
                 break;
             }

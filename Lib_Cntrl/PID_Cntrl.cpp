@@ -24,15 +24,16 @@ PID_Cntrl::~PID_Cntrl() {}
 void PID_Cntrl::reset(float initValue)
 {
     // -----------------------
-    
+    Ipart = initValue;
 }
 
 
 float PID_Cntrl::update(float e)
 {
-    // the main update 
-   return 0; 
-   
+    // the main update function
+    Ipart += I * Ts*e;              // simple fwd euler integration
+    Ipart = saturate(Ipart);        // saturate I-part
+    return saturate(P*e + Ipart);   // saturate and return 
 }
 
 float PID_Cntrl::saturate(float x)

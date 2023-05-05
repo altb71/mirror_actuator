@@ -40,7 +40,7 @@ private:
     void sendSignal();
     bool is_initialized;
     void find_index(void);
-    PID_Cntrl v_cntrl[2];
+    PID_Cntrl v_cntrl_1, v_cntrl_2;
     Data_Xchange *m_data;
     sensors_actuators *m_sa;
     Mirror_Kinematic *m_mk;
