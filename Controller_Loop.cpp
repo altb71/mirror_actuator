@@ -62,6 +62,7 @@ void Controller_Loop::loop(void){
                 myDataLogger.write_to_log(ti_loc,v_des, m_data->sens_Vphi[0], i_des);
                 break;
             case CNTRL_POS:
+                m_sa->enable_motors(true);      // enable motors
             // Winkelregler 
                 phi_des = myDataLogger.get_set_value(ti_loc);
                 v_des_vorst = ableit_vorst(phi_des);
