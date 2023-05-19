@@ -16,6 +16,8 @@
 #define FIND_INDEX 1
 #define GPA_IDENT_PLANT 10
 #define CNTRL_VEL 20
+#define CNTRL_POS 30
+
 
 // This is the loop class, it is not a controller at first hand, it guarantees a cyclic call
 class Controller_Loop
@@ -29,6 +31,7 @@ public:
     void switch_to_find_index(void);
     void switch_to_GPA_ident(void);
     void switch_to_cntrl_vel(void);
+    void switch_to_cntrl_pos(void);
 
 private:
     void loop(void);
@@ -41,6 +44,7 @@ private:
     bool is_initialized;
     void find_index(void);
     PID_Cntrl v_cntrl_1, v_cntrl_2;
+    IIR_filter ableit_vorst;
     Data_Xchange *m_data;
     sensors_actuators *m_sa;
     Mirror_Kinematic *m_mk;

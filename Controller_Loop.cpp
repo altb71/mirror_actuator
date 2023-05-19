@@ -15,15 +15,19 @@ Controller_Loop::Controller_Loop(Data_Xchange *data,sensors_actuators *sa, Mirro
     ti.reset();
     ti.start();
     controller_state = CNTRL_IDLE;  // the local state machine
-    v_cntrl_1 = PID_Cntrl(0.02,4,0,0,Ts,-0.8,0.8);
+    v_cntrl_1 = PID_Cntrl(0.02,4,0,0,Ts,-0.8,0.8); // nur PI-Regler
+    ableit_vorst = IIR_filter(0.0005,Ts);
+    //v_cntrl_1 = PID_Cntrl(0.0119, 1.45, 1.98e-05, 0.000769,Ts,-0.8,0.8);
     }
 // decontructor for controller loop
 Controller_Loop::~Controller_Loop() {}
 // ----------------------------------------------------------------------------
 // this is the main loop called every Ts with high priority
 void Controller_Loop::loop(void){
-    float i_des,v_des;
+    float i_des,v_des,phi_des,v_des_vorst;
     uint8_t k = 0;
+    float kv = 149;
+    v_des = 0;
     while(1)
         {
         ThisThread::flags_wait_any(threadFlag);
@@ -42,17 +46,29 @@ void Controller_Loop::loop(void){
                 break;
             case GPA_IDENT_PLANT:
                 m_sa->enable_motors(true);      // enable motors, still read the bigButton to enable
+                // *** Identifikation GEschwindigkeitsregelstrecke
 /*Variante 1*/    // i_des = myGPA.update(i_des,m_data->sens_Vphi[0]);
-/*Variante 2*/     i_des = 0.02*(50+myGPA.update(i_des,m_data->sens_Vphi[0]) - m_data->sens_Vphi[0]);
+/*Variante 2*/    // i_des = 0.02*(50+myGPA.update(i_des,m_data->sens_Vphi[0]) - m_data->sens_Vphi[0]);
 /*Variante 3*/    // i_des = 0.02*(50.0 - m_data->sens_Vphi[0]) + myGPA.update(i_des,m_data->sens_Vphi[0]);
-                
+                // *** Identifikation Positionsregelstrecke
+                v_des = myGPA.update(v_des,m_data->sens_phi[0]);
+                i_des = v_cntrl_1(v_des - m_data->sens_Vphi[0]);
                 break;
             case CNTRL_VEL:
                 m_sa->enable_motors(true);      // enable motors
+            // Geschwindigkeitsregler
                 v_des = myDataLogger.get_set_value(ti_loc);
                 i_des = v_cntrl_1(v_des - m_data->sens_Vphi[0]);
                 myDataLogger.write_to_log(ti_loc,v_des, m_data->sens_Vphi[0], i_des);
-            break;
+                break;
+            case CNTRL_POS:
+            // Winkelregler 
+                phi_des = myDataLogger.get_set_value(ti_loc);
+                v_des_vorst = ableit_vorst(phi_des);
+                v_des = kv*(phi_des - m_data->sens_phi[0]) + v_des_vorst;
+                i_des = v_cntrl_1(v_des - m_data->sens_Vphi[0]);
+                myDataLogger.write_to_log(ti_loc,phi_des, m_data->sens_phi[0], i_des);
+                break;
             // ------------------------ do the control first
             default:
                 break;
@@ -90,6 +106,10 @@ void Controller_Loop::switch_to_GPA_ident()
 void Controller_Loop::switch_to_cntrl_vel()
 {
     controller_state = CNTRL_VEL;
+}
+void Controller_Loop::switch_to_cntrl_pos()
+{
+    controller_state = CNTRL_POS;
 }
 void Controller_Loop::init_controllers(void)
 {
