@@ -24,18 +24,14 @@ PID_Cntrl::~PID_Cntrl() {}
 void PID_Cntrl::reset(float initValue)
 {
     // -----------------------
-    Ipart = initValue;
 }
 
 
 float PID_Cntrl::update(float e)
 {
     // the main update function
-    Ipart += I * Ts*e;              // simple fwd euler integration
-    Ipart = saturate(Ipart);        // saturate I-part
-    Dpart = -(Ts-2*tau_f)/(Ts+2*tau_f)*Dpart + D*2/(Ts+2*tau_f)*(e-e_old);
-    e_old = e;
-    return saturate(P*e + Ipart +Dpart);   // saturate and return 
+    // AUFGABE 6.3, 6.4, 7.1
+    return 0;   // saturate and return 
 }
 
 float PID_Cntrl::saturate(float x)

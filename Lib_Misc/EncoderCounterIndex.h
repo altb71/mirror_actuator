@@ -27,7 +27,8 @@ class EncoderCounterIndex {
                     EncoderCounterIndex(EncoderCounter& encoderCounter, InterruptIn& channelIndex);
         virtual     ~EncoderCounterIndex();
         int32_t     getPositionAtIndexPulse();
-        int32_t                 positionAtIndexPulse;
+        int32_t     positionAtIndexPulse;
+        bool        is_referenced;
         
     private:
         

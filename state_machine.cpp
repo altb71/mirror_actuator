@@ -4,11 +4,11 @@ using namespace std;
 extern GPA myGPA;
 
 // contructor for controller loop
-state_machine::state_machine(sensors_actuators *sa, Controller_Loop *loop, float Ts) : thread(osPriorityNormal,4096)
+state_machine::state_machine(IO_handler *io, realtime_thread *loop, float Ts) : thread(osPriorityNormal,4096)
 {
     this->Ts = Ts;
     this->CS = INIT;
-    this->m_sa = sa;
+    this->m_io = io;
     this->m_loop = loop;
     ti.reset();
     ti.start();
@@ -28,19 +28,22 @@ void state_machine::loop(void){
         switch(CS)
             {
             case INIT:
-                if(ti.read()>3)
+                if(ti.read()>1)
                     {
                     ti.reset();
-                    //m_loop->switch_to_GPA_ident();
-                    //CS = STATE_GPA;
-                    //m_loop->switch_to_cntrl_vel();
-                    m_loop->switch_to_cntrl_pos();
-                    CS = CONTROL;
+                    m_loop->switch_to_GPA_ident();
+                    CS = STATE_GPA;
+                    }
+                break;
+            case REFERENCE:
+                if(m_io->motors_are_referenced())
+                    {
+                    ti.reset();
+                    m_loop->switch_to_cntrl_vel();
+                    CS = STATE_GPA;
                     }
                 break;
             case STATE_GPA:
-                break;
-            case REFERENCE:
                 break;
             case CONTROL:
                 break;

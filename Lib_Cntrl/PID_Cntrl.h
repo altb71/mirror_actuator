@@ -1,5 +1,5 @@
-#ifndef PID_CNTRL_H_
-#define PID_CNTRL_H_
+#pragma once
+
 
 class PID_Cntrl
 {
@@ -22,9 +22,6 @@ public:
 
 
 private:
-    float P,I,D,tau_f,Ts,uMax,uMin;
+    float P,I,D,tau_f,Ts,uMax,uMin; // add other variables needed
     float Ipart,Dpart,e_old;
-
 };
-
-#endif

@@ -7,6 +7,7 @@ class Enc_unwrap_scale
 {
 public:
 
+    Enc_unwrap_scale(){};
     Enc_unwrap_scale(uint16_t T, uint8_t bits);
     
     float operator()(short inc) {

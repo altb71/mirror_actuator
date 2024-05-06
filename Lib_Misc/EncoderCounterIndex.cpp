@@ -20,8 +20,8 @@ using namespace std;
 EncoderCounterIndex::EncoderCounterIndex(EncoderCounter& encoderCounter, InterruptIn& channelIndex) : encoderCounter(encoderCounter), channelIndex(channelIndex) {
     
     // attach interrupt
-    
     channelIndex.rise(callback(this, &EncoderCounterIndex::rise));
+    is_referenced = false;
 }
 
 EncoderCounterIndex::~EncoderCounterIndex() {}
@@ -35,6 +35,7 @@ void EncoderCounterIndex::rise() {
     
     positionAtIndexPulse = encoderCounter;
     channelIndex.rise(NULL);
+    is_referenced = true;
 }
 
 

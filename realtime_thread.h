@@ -10,7 +10,7 @@
 #include "GPA.h"
 #include "DataLogger.h"
 #include "FastPWM.h"
-#include "sensors_actuators.h"
+#include "IO_handler.h"
 
 #define CNTRL_IDLE 0
 #define FIND_INDEX 1
@@ -20,11 +20,11 @@
 
 
 // This is the loop class, it is not a controller at first hand, it guarantees a cyclic call
-class Controller_Loop
+class realtime_thread
 {
 public:
-    Controller_Loop(Data_Xchange *,sensors_actuators *,Mirror_Kinematic *,float Ts);
-    virtual ~Controller_Loop();
+    realtime_thread(Data_Xchange *,IO_handler *,Mirror_Kinematic *,float Ts);
+    virtual ~realtime_thread();
     void start_loop(void);
     void init_controllers(void);
     void reset_pids(void);
@@ -43,10 +43,10 @@ private:
     void sendSignal();
     bool is_initialized;
     void find_index(void);
-    PID_Cntrl v_cntrl_1, v_cntrl_2;
+    PID_Cntrl v_cntrl_0, v_cntrl_1;
     IIR_filter ableit_vorst;
     Data_Xchange *m_data;
-    sensors_actuators *m_sa;
+    IO_handler *m_io;
     Mirror_Kinematic *m_mk;
     uint8_t controller_state;
 };

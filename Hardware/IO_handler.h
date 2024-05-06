@@ -1,5 +1,5 @@
 #pragma once
-/* class sensors_actuators
+/* class IO_handler
 Tasks for students:
     - scale ios correctly
     - define derivative filter correctly
@@ -11,21 +11,21 @@ Tasks for students:
 #include "LinearCharacteristics.h"
 #include "data_structs.h"
 #include "Enc_unwrap_scale.h"
+#include "Mirror_Kinematic.h"
 
 
-class sensors_actuators
+class IO_handler
 {
 public:
-    sensors_actuators(Data_Xchange *,float Ts);        // default constructor
-    virtual ~sensors_actuators();   // deconstructor
+    IO_handler(Data_Xchange *,Mirror_Kinematic *, float Ts);        // default constructor
+    virtual ~IO_handler();   // deconstructor
     void read_encoders_calc_speed(void);       // read both encoders and calculate speeds
-    float get_phi(uint8_t);         // get angle of motor k
-    float get_om(uint8_t);          // get speed of motor k
     void set_des_current(uint8_t);  // set desired current on actuator
     void force_enable_motors(bool);
     void enable_motors(bool);       // enable/disable motors via DigitalOut, send a "true" and also press button
     void write_current(uint8_t,float);  // write current to motors (0,...) for motor 1, (1,...) for motor 2
     void set_laser_on_off(bool);    // set laser on or off
+    bool motors_are_referenced();
 private:
     IIR_filter di1;
     IIR_filter di2;
@@ -49,5 +49,6 @@ private:
     Enc_unwrap_scale uw1;
     Enc_unwrap_scale uw2;
     Data_Xchange *m_data;
+    Mirror_Kinematic *m_mk;
 
 };

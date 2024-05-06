@@ -1,5 +1,6 @@
 #ifndef GPA_H_
 #define GPA_H_
+#include "mbed.h"
 //#include "uart_comm_thread.h"
 
 
@@ -47,6 +48,7 @@ public:
     void    printLine();
     void    printLongLine();
     float   get_Ts();
+    uint8_t get_i();
     void    getGPAdata(float *);
     bool    new_data_available;
     bool    meas_is_finished;
@@ -78,8 +80,8 @@ private:
     double  fexc;
     float   fexcPast;
     float   dfexcj;
-    int     i;
-    int     j;
+    int     f_iter;
+    int     j_iter;
     double  scaleG;
     double  cr;
     double  ci;
@@ -95,6 +97,7 @@ private:
     int     Nsweep;
     int     Nsweep_i;
     float   AexcOut;
+    uint8_t testpoint;
 
     gpadata_t gpaData;
     bool    doPrint;
