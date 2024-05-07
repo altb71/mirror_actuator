@@ -93,9 +93,9 @@ float DataLogger::StepSeq(float ti)
     float phi = ti*omega/PI;
     uint16_t fphi = (uint16_t)floor(phi)%2;
     if(fphi == 0)
-        return Amp;
+        return Amp+offset;
     else
-        return -Amp;
+        return -Amp+offset;
 
 }
 
