@@ -15,7 +15,9 @@ realtime_thread::realtime_thread(Data_Xchange *data,IO_handler *io, Mirror_Kinem
     ti.reset();
     ti.start();
     controller_state = CNTRL_IDLE;  // the local state machine
-    //v_cntrl_0 = PID_Cntrl(,,,,Ts,-0.8,0.8); // zunaechst nur PI-Regler, 1 
+    v_cntrl_0 = PID_Cntrl(0.0266,5.322,0,0,Ts,-0.8,0.8); // zunaechst nur PI-Regler, 1 
+    v_cntrl_1 = PID_Cntrl(0.0266,5.322,0,0,Ts,-0.8,0.8); // zunaechst nur PI-Regler, 1 
+    //v_cntrl_0 = PID_Cntrl(0.022, 2.83, 3.49e-05,0.000556,Ts,-.8,.8); PID Regler
     }
 // decontructor for controller loop
 realtime_thread::~realtime_thread() {}
@@ -48,14 +50,18 @@ void realtime_thread::loop(void){
             case GPA_IDENT_PLANT:
                 m_io->enable_motors(true);      // enable motors, still read the bigButton to enable
                 // AUFGABE 5.2, 5.3
-                i_des0 = 0; 
+                // i_des0 = myGPA.update(i_des0, m_data->sens_Vphi[0]); // Variante 1
+                //i_des0 = 0.02*(100+myGPA.update(i_des0, m_data->sens_Vphi[0]) - m_data->sens_Vphi[0]); // Variante 2
+                i_des0 = 0.02*(100 - m_data->sens_Vphi[0]) + myGPA.update(i_des0, m_data->sens_Vphi[0]); // Variante 3
                 i_des1 = 0;
                 break;
             case CNTRL_VEL:
                 // AUFGABE 6.3, 6.4
-                i_des0 = 0;
-                i_des1 = 0;
+                v_des = myDataLogger.get_set_value(ti_loc);
+                i_des0 = v_cntrl_0(v_des - m_data->sens_Vphi[0]);
+                i_des1 = v_cntrl_1(10 - m_data->sens_Vphi[1]);
                 m_io->enable_motors(true);      // enable motors
+                myDataLogger.write_to_log(ti_loc, v_des, m_data->sens_Vphi[0], i_des0);
                 break;
             case CNTRL_POS:
                 // AUFGABE 7.x
