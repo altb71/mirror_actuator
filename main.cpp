@@ -32,7 +32,7 @@ int main()
     static BufferedSerial uart_serial(USBTX, USBRX, 115200);
     uart_serial.set_format(8,BufferedSerial::None,1);
     uart_serial.set_blocking(false); // force to send whenever possible and data is there
-    uart_comm_thread_send uart_com_send(&data,&hardware,&uart_serial, .01f); // communication send thread
+    uart_comm_thread_send uart_com_send(&data,&hardware,&uart_serial, .02f); // communication send thread
     uart_comm_thread_receive uart_com_receive(&data,&mk,&uart_serial, .02f); // communication receive thread
     realtime_thread loop(&data,&hardware,&mk,Ts);       // this is for the main controller loop
     state_machine sm(&hardware,&loop,.01);              // handles states
