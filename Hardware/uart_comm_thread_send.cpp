@@ -28,14 +28,18 @@ uart_comm_thread_send::~uart_comm_thread_send() {}
 // #### run the statemachine
 void uart_comm_thread_send::loop(void)
 {
-	send_state = 1011;
+	send_state = 100;
 
 	while(true)   // loop, latest Ts = 1ms
     {
         ThisThread::flags_wait_any(threadFlag);
         //---  The LOOP --------------------------------------------------------
     	switch(send_state)
-			{
+			{ 
+			case 100:
+                    		send_text((const char *)"Start MA on MBED");
+                    		send_state = 1011;
+                		break;
 			case 1011:
 				send(101,12,2*4,(char *)&(m_data->sens_phi[0]));		// send actual phi values (1 and 2)
 				send_state = 1012;
